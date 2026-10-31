@@ -11,16 +11,16 @@ Nota AI produced the ternary checkpoint, and boro64 converted it to GGUF.
 This repository distributes the backend source only. **No model weights are
 included or automatically downloaded.** Lightning is distinct from Nemotron Bolt E4B.
 
-## Development with ChatGPT/Codex
+## AI-assisted development and DevOps
 
-The fork-specific Lightning backend additions were created with ChatGPT/Codex,
-including code generation for CUDA kernels and execution of build and technical
-testing workflows. The maintainer, slavalevski-tech, initiated the project,
-defined the goals, provided the hardware and resources, and guided the experiments.
+ChatGPT/Codex generated the fork-specific Lightning backend code, including CUDA
+kernels, and carried out build, testing and deployment workflows.
+**slavalevski-tech** set the goals, provided the hardware and resources, and guided
+the experiments.
 
-This disclosure concerns this fork's additions. Original Kindi remains attributed
-to Amir Husain; third-party sources, licenses and model provenance are documented
-in [NOTICE](NOTICE), [MODEL.md](MODEL.md) and [MODIFICATIONS.md](MODIFICATIONS.md).
+Original Kindi remains credited to **Amir Husain**. See [NOTICE](NOTICE),
+[MODEL.md](MODEL.md) and [MODIFICATIONS.md](MODIFICATIONS.md) for attribution,
+licenses and model provenance.
 
 ## License and source
 
