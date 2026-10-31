@@ -23,8 +23,21 @@ not model parameters. We did not train or modify the selected GGUF weights.
 
 Reference implementations consulted during development: MLX-LM (Apple, MIT)
 and llama.cpp (ggml authors, MIT). They are not the production inference
-runtime and their source files are not included in this release. Jinja2
-(Pallets, BSD-3-Clause) and MarkupSafe (Pallets, BSD-3-Clause) are separately
+runtime and their source files are not included in this release.
+
+Hugging Face Transformers (Apache-2.0) and state-spaces/mamba (Apache-2.0)
+were also used as references for cross-checks during development. They are
+not production runtime dependencies.
+
+Cross-check sources (pinned revisions):
+  Transformers NemotronH:
+  https://github.com/huggingface/transformers/blob/a672eb5f474b8b30173e9f96eab66adf292da635/src/transformers/models/nemotron_h/modeling_nemotron_h.py
+  Mamba-2:
+  https://github.com/state-spaces/mamba/blob/6b72c122713bb769cc82c6b8e6d019c53d27d6a1/mamba_ssm/modules/mamba2.py
+  Minimal SSD:
+  https://github.com/state-spaces/mamba/blob/a70e3d85e2db4bb5ded2e01aa4e6a1cbda355b32/mamba_ssm/modules/ssd_minimal.py
+
+Jinja2 (Pallets, BSD-3-Clause) and MarkupSafe (Pallets, BSD-3-Clause) are separately
 installed runtime dependencies. Preserve dependency licenses when distributing
 an image; this repository's AGPL does not replace those licenses.
 
