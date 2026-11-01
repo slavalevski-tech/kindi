@@ -1,69 +1,73 @@
-# Kindi 0.3.0 + Lightning backend V3 for Quadro K6000
+# Kindi 0.3.0 + Lightning backend V6 for Quadro K6000
 
-A modified fork of [Kindi](https://github.com/ahtx/kindi), originally written by
-**Amir Husain**. Maintained here by **slavalevski-tech**. Modifications dated
-**2026-10-30** are described in [MODIFICATIONS.md](MODIFICATIONS.md).
-This is an independent fork, not an official upstream release.
+An independent fork of [Kindi](https://github.com/ahtx/kindi), originally written
+by **Amir Husain**. Fork-specific Lightning work is maintained by
+**slavalevski-tech**, with modifications dated 2026-10-30 through 2026-11-01.
+See [MODIFICATIONS.md](MODIFICATIONS.md) for the change history and attribution.
 
-The backend runs **boro64/Ternary-Nemotron-3.5-Lightning-30B-A3B-GGUF** on the
-Quadro K6000 with native CUDA/CuPy kernels. NVIDIA created the base model,
-Nota AI produced the ternary checkpoint, and boro64 converted it to GGUF.
-This repository distributes the backend source only. **No model weights are
-included or automatically downloaded.** Lightning is distinct from Nemotron Bolt E4B.
+This backend runs **boro64/Ternary-Nemotron-3.5-Lightning-30B-A3B-GGUF** using
+native CUDA/CuPy kernels. NVIDIA created the base model, Nota AI produced the
+ternary checkpoint, and boro64 converted it to GGUF. **Only backend source is
+distributed; no model weights are included or automatically downloaded.**
+Lightning is a different model from Nemotron Bolt E4B.
 
 ## AI-assisted development and DevOps
 
-ChatGPT/Codex generated the fork-specific Lightning backend code, including CUDA
-kernels, and carried out build, testing and deployment workflows.
-**slavalevski-tech** set the goals, provided the hardware and resources, and guided
-the experiments.
+ChatGPT/Codex generated the fork-specific implementation, including CUDA kernels,
+and carried out build, testing and deployment workflows. The AI models used were
+**GPT-6 Astra and GPT-6.1 Sol**. **slavalevski-tech** set the goals, provided
+hardware and personally funded tools, and guided the experiments in spare time.
+The provenance/license review was also AI-assisted, not an independent human
+code or legal audit. Known sources and review limits are in [PROVENANCE.md](PROVENANCE.md).
+Original Kindi remains credited to Amir Husain.
 
-Original Kindi remains credited to **Amir Husain**. See [NOTICE](NOTICE),
-[MODEL.md](MODEL.md) and [MODIFICATIONS.md](MODIFICATIONS.md) for attribution,
-licenses and model provenance.
+## Accepted V6 profile
 
-## License and source
+- Linux x86_64, Quadro K6000 12 GB, Kepler sm_35.
+- CUDA 10.2, CuPy 9.6.0, Python 3.6.9; accepted driver 470.256.02.
+- **65,536 tokens total: prompt plus generated output.**
+- FP16 KV storage with direct reads; FP32 arithmetic and recurrent state.
+- tile24 dense/expert prefill, chunk 256, vec4/OR Q2 decoding, SSM auto.
+- GQA16 vector2 stage32 attention with per-function four-byte bank requests.
+- Exact full-vocabulary split Q8 output head; no approximate fast head.
+- 512 MiB attention workspace; host prefix cache bounded to 1024 MiB/eight entries.
+- One inference worker. The Compose example uses 4 GiB host RAM without swap.
 
-Program code: **AGPL-3.0-only**, without warranty. You may copy, modify and
-redistribute it under [LICENSE](LICENSE). Preserve [NOTICE](NOTICE), upstream
-attribution and change notices. [Licensing guidance](LICENSING.md) explains
-source distribution and the separate model/dependency licenses. The upstream
-commercial offer is preserved in [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md);
-it does not relicense the additional contributions in this fork.
+Use the [step-by-step installation guide](INSTALLATION.md),
+[BUILD.md](BUILD.md) for the concise procedure and [MODEL.md](MODEL.md) for the exact
+existing GGUF identity. The Compose file and entrypoint set the complete V6
+profile explicitly; changing only the context of a V3 setup does not select V6.
+No RTX GPU, MLX, llama.cpp or PyTorch is required for production inference.
+The retained upstream installer is not the Lightning installation procedure.
 
-The Lightning API serves its complete shipped source at `/source/archive`,
-with a prominent offer at `/` and `/source`, a license at `/license`, a link
-in API documentation, and source/license links in HTTP response headers.
-No API key is needed for the source download. Keep these routes reachable
-through any reverse proxy. Rebuild and restart after changing source.
+## Validation
 
-## Accepted V3 profile
+The accepted development V6 passed full-model 64K retrieval and numerical checks,
+plus authenticated HTTP/SSE, cache, cancellation, restart and rollback checks on
+K6000 on 2026-10-31. See [VALIDATION.md](VALIDATION.md) for the exact scope and the
+separate checks of this publication copy. The 64K retrieval result is a declared
+fixture, not a guarantee of universal model quality. 128K is not an accepted V6 profile.
 
-- Linux, Quadro K6000 12 GB (Kepler sm_35), NVIDIA driver 470.256.02 in the accepted run.
-- CUDA 10.2, CuPy 9.6.0, Python 3.6.9; Docker with NVIDIA Container Toolkit.
-- `optimized` kernels, `tile16` dense/expert prefill, `split` attention, chunk 128.
-- Exact full vocabulary head; FP32 state and default KV. FP16/Q8_0 are optional KV storage profiles.
-- **32,768 tokens total: input plus output.** Full-model 64K/128K is not validated.
-- One inference worker; prefix cache bounded to 512 MiB and eight entries.
+See [changes from V3 to V6](CHANGES-V3-TO-V6.md) for the detailed explanation of
+context, memory, kernels, cache and upgrade behavior. Performance tables and
+percentage-gain claims are deferred until a matched full benchmark is available;
+[benchmark methodology](BENCHMARKS-LIGHTNING.md) states the planned protocol.
 
-See [BUILD.md](BUILD.md) for the source build and launch procedure using your
-existing GGUF, [MODEL.md](MODEL.md) for its pinned identity, and
-[BENCHMARKS-LIGHTNING.md](BENCHMARKS-LIGHTNING.md) for measured results and limits.
-An RTX 4080 was used for independent validation; it is not a production requirement.
-The runtime does not use llama.cpp, MLX or PyTorch for model computation.
+## License and corresponding source
 
-## Validation status
+Program code: **AGPL-3.0-only**, without warranty; see [LICENSE](LICENSE),
+[NOTICE](NOTICE) and [LICENSING.md](LICENSING.md). Preserve original attribution,
+license notices and modification notices. Model and dependency licenses are separate.
+This is an independent fork, not an official upstream release or endorsement.
 
-Historical V3 acceptance covered operator/reference checks, full state/logit/token
-comparisons, 32K retrieval, API, 100 requests, cancellation, cache and restart.
-The publication copy changes packaging, attribution, release identity, explicit
-V3 launch defaults and source-offer HTTP routes; accepted numerical kernels are
-retained. Local publication checks are described in [VALIDATION.md](VALIDATION.md).
-A clean Linux Docker build, K6000 numerical verification and basic API/restart
-installation checks passed on 2026-10-30. This was not a rerun of the historical
-long-context/stress benchmarks; see VALIDATION.md for scope.
+The Lightning API prominently offers the shipped corresponding source at `/`
+and `/source`, downloads it at `/source/archive`, and serves `/license`.
+Source/license routes require no inference API key. Preserve them through any
+reverse proxy, and rebuild/restart after source changes. No registry image is published.
+The original author's commercial offer is retained in COMMERCIAL-LICENSE.md;
+the public license of this fork remains AGPL-3.0-only.
 
-Upstream documentation and its original benchmark claims remain under `docs/`
-and [UPSTREAM-README.md](UPSTREAM-README.md). Those describe upstream
-models/profiles, not Lightning V3. The upstream installer is retained for source
-completeness; use BUILD.md for this backend rather than `install.sh`.
+The previous published V3 remains in Git history at commit
+`51c134248e9ff48ff1fa051adefbf228134359cb`.
+Original upstream documentation is preserved in `docs/` and UPSTREAM-README.md;
+its other models and benchmark claims do not describe Lightning V6.

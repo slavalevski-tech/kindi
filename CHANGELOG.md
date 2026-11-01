@@ -1,3 +1,14 @@
+# Fork release: Kindi 0.3.0 + Lightning backend V6 — 2026-11-01
+
+- Publish the accepted V6 native 64K FP16/direct profile for Quadro K6000.
+- Inherit tile24 prefill, vec4/OR Q2 decoding, exact SSM paths and split Q8 head.
+- Add the guarded GQA16 vector2/bank4 attention strategy through 65,536 capacity.
+- Avoid copying inadmissible prefix checkpoints and retaining evicted snapshots.
+- Preserve original Kindi authorship, AGPL-3.0-only and public source-offer routes.
+- Disclose AI assistance, known reference sources, licenses and review limitations.
+- Update English build/profile/validation instructions and retain historical V3 results.
+- Source only: no model weights, private configuration, registry images or other projects.
+
 # Fork release: Kindi 0.3.0 + Lightning backend V3 — 2026-10-30
 
 - Native Lightning30B-A3B backend; tile16 prefill, split attention,32K acceptance.

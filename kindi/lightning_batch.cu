@@ -361,3 +361,171 @@ extern "C" __global__ void attention_tiled(const float* q,const float* k,const f
     }
     if(t<dim)out[((size_t)token*qheads+h)*dim+t]=acc/total;
 }
+
+// Isolated prefill candidates. Append after lightning.cu + lightning_batch.cu.
+// Three/four rows per warp, eight assignments; retain q2_tile16's FP32 order.
+template<int ROWS_PER_WARP>
+__device__ __forceinline__ void q2_row_tile(const unsigned char* w,const float* x,float* y,
+    int rows,int cols,int items,int topk,int per_assignment,const int* order,
+    const int* job_expert,const int* job_start,const int* job_length,const int* job_count) {
+    int job=blockIdx.y,t=threadIdx.x,lane=t&31,warp=t>>5;
+    if(job>=(job_count?*job_count:(items+7)/8))return;
+    int count=job_length?job_length[job]:min(8,items-job*8);
+    int first=job_start?job_start[job]:job*8,expert=job_expert?job_expert[job]:0;
+    int rowbase=blockIdx.x*(ROWS_PER_WARP*8)+warp;
+    size_t rb=(size_t)(cols/64)*18;
+    __shared__ float xs[8][4][32];
+    __shared__ int assignment[8];
+    if(t<8)assignment[t]=t<count?(order?order[first+t]:first+t):-1;
+    __syncthreads();
+    float sums[ROWS_PER_WARP][8]={0};
+    for(int base=0;base<cols;base+=128) {
+        int column=base+lane*4,aa=assignment[warp];
+        if(aa>=0 && column<cols) {
+            int input=per_assignment?aa:aa/topk;
+            float4 value=__ldg(reinterpret_cast<const float4*>(x+(size_t)input*cols+column));
+            xs[warp][0][lane]=value.x;xs[warp][1][lane]=value.y;
+            xs[warp][2][lane]=value.z;xs[warp][3][lane]=value.w;
+        }
+        __syncthreads();
+        if(column<cols) {
+            float d[ROWS_PER_WARP],q0[ROWS_PER_WARP],q1[ROWS_PER_WARP];
+            float q2[ROWS_PER_WARP],q3[ROWS_PER_WARP];
+            #pragma unroll
+            for(int r=0;r<ROWS_PER_WARP;r++) {
+                int row=rowbase+r*8;unsigned q=0;d[r]=0.f;
+                if(row<rows) {
+                    const unsigned char* b=w+((size_t)expert*rows+row)*rb+(column/64)*18;
+                    d[r]=__half2float(__ushort_as_half(__ldg(reinterpret_cast<const unsigned short*>(b))));
+                    q=__ldg(b+2+(column%64)/4);
+                }
+                q0[r]=(float)((int)(q&3)-1);q1[r]=(float)((int)((q>>2)&3)-1);
+                q2[r]=(float)((int)((q>>4)&3)-1);q3[r]=(float)((int)((q>>6)&3)-1);
+            }
+            #pragma unroll
+            for(int s=0;s<8;s++)if(s<count) {
+                float x0=xs[s][0][lane],x1=xs[s][1][lane];
+                float x2=xs[s][2][lane],x3=xs[s][3][lane];
+                #pragma unroll
+                for(int r=0;r<ROWS_PER_WARP;r++)if(rowbase+r*8<rows) {
+                    float partial=fmaf(q0[r],x0,0.f);
+                    partial=fmaf(q1[r],x1,partial);partial=fmaf(q2[r],x2,partial);
+                    partial=fmaf(q3[r],x3,partial);
+                    sums[r][s]=fmaf(d[r],partial,sums[r][s]);
+                }
+            }
+        }
+        __syncthreads();
+    }
+    #pragma unroll
+    for(int s=0;s<8;s++)if(s<count) {
+        #pragma unroll
+        for(int r=0;r<ROWS_PER_WARP;r++) {
+            float sum=warp_sum(sums[r][s]);int row=rowbase+r*8;
+            if(lane==0 && row<rows)y[(size_t)assignment[s]*rows+row]=sum;
+        }
+    }
+}
+
+extern "C" __global__ void q2_tile24(const unsigned char* w,const float* x,float* y,
+    int rows,int cols,int items,int topk,int per_assignment,const int* order,
+    const int* job_expert,const int* job_start,const int* job_length,const int* job_count) {
+    q2_row_tile<3>(w,x,y,rows,cols,items,topk,per_assignment,order,job_expert,job_start,job_length,job_count);
+}
+
+extern "C" __global__ void q2_tile32(const unsigned char* w,const float* x,float* y,
+    int rows,int cols,int items,int topk,int per_assignment,const int* order,
+    const int* job_expert,const int* job_start,const int* job_length,const int* job_count) {
+    q2_row_tile<4>(w,x,y,rows,cols,items,topk,per_assignment,order,job_expert,job_start,job_length,job_count);
+}
+
+// Pinned V5 SSM prototype SHA256 7ac32107ad02d42f7a4731d444061b51980e3f59aa7d4ae499f7723ba757f75a
+// Append after immutable V4 canonical CUDA. Reuse EXACT softplus/warp_sum.
+// No fast math, reassociation, lane remapping or reduction changes.
+extern "C" __global__ void v5_ssm_step_shared(const float* conv,const float* dt,const float* dtbias,
+    const float* a,const float* d,float* state,float* y,int heads,int headdim,int statesize,int groups) {
+    int channel=blockIdx.x,h=channel/headdim,p=channel%headdim,t=threadIdx.x;
+    if(h>=heads)return;
+    int g=h/(heads/groups),inner=heads*headdim;
+    __shared__ float parameters[2];
+    if(t==0){float delta=softplus(dt[h]+dtbias[h]);parameters[0]=delta;parameters[1]=expf(delta*a[h]);}
+    __syncthreads();
+    float delta=parameters[0],decay=parameters[1],x=conv[channel],s=0;
+    for(int n=t;n<statesize;n+=blockDim.x) {
+        size_t index=((size_t)h*headdim+p)*statesize+n;
+        float v=fmaf(delta*x,conv[inner+g*statesize+n],decay*state[index]);
+        state[index]=v;s=fmaf(v,conv[inner+groups*statesize+g*statesize+n],s);
+    }
+    s=warp_sum(s);__shared__ float sums[8];
+    if((t&31)==0)sums[t>>5]=s;__syncthreads();
+    if(t<32){s=t<(blockDim.x/32)?sums[t]:0;s=warp_sum(s);if(t==0)y[channel]=fmaf(d[h],x,s);}
+}
+
+// For step: dt starts at a64-element vector, stride64,tokens1.
+// For chunk: dt points to projected+inner+conv_dim, stride10304,tokens<=256.
+// Scratch [delta tokens*heads][decay tokens*heads], FP32,512B step/128KiB chunk256.
+extern "C" __global__ void v5_ssm_parameters(const float* dt,const float* dtbias,const float* a,
+    float* parameters,int tokens,int heads,int stride) {
+    int index=blockIdx.x*blockDim.x+threadIdx.x;
+    if(index>=tokens*heads)return;
+    int token=index/heads,h=index%heads;
+    float delta=softplus(dt[(size_t)token*stride+h]+dtbias[h]);
+    parameters[index]=delta;parameters[tokens*heads+index]=expf(delta*a[h]);
+}
+
+extern "C" __global__ void v5_ssm_step_precomputed(const float* conv,const float* parameters,
+    const float* d,float* state,float* y,int heads,int headdim,int statesize,int groups) {
+    int channel=blockIdx.x,h=channel/headdim,p=channel%headdim,t=threadIdx.x;
+    if(h>=heads)return;
+    int g=h/(heads/groups),inner=heads*headdim;
+    float delta=__ldg(parameters+h),decay=__ldg(parameters+heads+h),x=conv[channel],s=0;
+    for(int n=t;n<statesize;n+=blockDim.x) {
+        size_t index=((size_t)h*headdim+p)*statesize+n;
+        float v=fmaf(delta*x,conv[inner+g*statesize+n],decay*state[index]);
+        state[index]=v;s=fmaf(v,conv[inner+groups*statesize+g*statesize+n],s);
+    }
+    s=warp_sum(s);__shared__ float sums[8];
+    if((t&31)==0)sums[t>>5]=s;__syncthreads();
+    if(t<32){s=t<(blockDim.x/32)?sums[t]:0;s=warp_sum(s);if(t==0)y[channel]=fmaf(d[h],x,s);}
+}
+
+extern "C" __global__ void v5_ssm_chunk_shared(const float* conv,const float* projected,const float* dtbias,
+    const float* a,const float* d,float* state,float* y,int tokens,int heads,int headdim,int statesize,
+    int groups,int stride) {
+    int channel=blockIdx.x,h=channel/headdim,p=channel%headdim,t=threadIdx.x;
+    int inner=heads*headdim,channels=inner+2*groups*statesize,g=h/(heads/groups);
+    float carry=state[((size_t)h*headdim+p)*statesize+t];
+    __shared__ float sums[4];__shared__ float parameters[2];
+    if(t==0){float delta=softplus(projected[inner+channels+h]+dtbias[h]);parameters[0]=delta;parameters[1]=expf(delta*a[h]);}
+    __syncthreads();
+    for(int token=0;token<tokens;token++) {
+        const float* cv=conv+(size_t)token*channels;
+        float dt=parameters[0],decay=parameters[1];
+        carry=fmaf(dt*cv[channel],cv[inner+g*statesize+t],decay*carry);
+        float sum=carry*cv[inner+groups*statesize+g*statesize+t];sum=warp_sum(sum);
+        if((t&31)==0)sums[t>>5]=sum;__syncthreads();
+        if(t<32){sum=t<4?sums[t]:0;sum=warp_sum(sum);if(t==0)y[token*inner+channel]=fmaf(d[h],cv[channel],sum);}
+        // Every reader of current parameters passed the first barrier. Reuse
+        // the ORIGINAL end-of-token barrier to publish next token parameters.
+        if(t==0 && token+1<tokens){float delta=softplus(projected[(size_t)(token+1)*stride+inner+channels+h]+dtbias[h]);parameters[0]=delta;parameters[1]=expf(delta*a[h]);}
+        __syncthreads();
+    }
+    state[((size_t)h*headdim+p)*statesize+t]=carry;
+}
+
+extern "C" __global__ void v5_ssm_chunk_precomputed(const float* conv,const float* parameters,
+    const float* d,float* state,float* y,int tokens,int heads,int headdim,int statesize,int groups) {
+    int channel=blockIdx.x,h=channel/headdim,p=channel%headdim,t=threadIdx.x;
+    int inner=heads*headdim,channels=inner+2*groups*statesize,g=h/(heads/groups);
+    float carry=state[((size_t)h*headdim+p)*statesize+t];__shared__ float sums[4];
+    for(int token=0;token<tokens;token++) {
+        const float* cv=conv+(size_t)token*channels;
+        float dt=__ldg(parameters+(size_t)token*heads+h),decay=__ldg(parameters+(size_t)tokens*heads+token*heads+h);
+        carry=fmaf(dt*cv[channel],cv[inner+g*statesize+t],decay*carry);
+        float sum=carry*cv[inner+groups*statesize+g*statesize+t];sum=warp_sum(sum);
+        if((t&31)==0)sums[t>>5]=sum;__syncthreads();
+        if(t<32){sum=t<4?sums[t]:0;sum=warp_sum(sum);if(t==0)y[token*inner+channel]=fmaf(d[h],cv[channel],sum);}
+        __syncthreads();
+    }
+    state[((size_t)h*headdim+p)*statesize+t]=carry;
+}

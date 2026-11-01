@@ -1,0 +1,62 @@
+{
+  "accepted_development_commit": "3f03ba3fad655088c5d7819f30f18a3da109d17d",
+  "base_public_commit": "51c134248e9ff48ff1fa051adefbf228134359cb",
+  "accepted_core_files": [
+    {
+      "path": "kindi/kv.py",
+      "accepted_file_sha256": "8a49ffd9e8e5ea79ebe33a252433fe28be7a9edaf81e3f37613100c2d5ac6b9c",
+      "published_lf_sha256": "8a49ffd9e8e5ea79ebe33a252433fe28be7a9edaf81e3f37613100c2d5ac6b9c"
+    },
+    {
+      "path": "kindi/lightning.cu",
+      "accepted_file_sha256": "c700ef880e8e3ceb53f064e814459be565eb67e40e22becd9cacb6d8275ccb4b",
+      "published_lf_sha256": "c700ef880e8e3ceb53f064e814459be565eb67e40e22becd9cacb6d8275ccb4b"
+    },
+    {
+      "path": "kindi/lightning.py",
+      "accepted_file_sha256": "d023c54613bb17c45ac32def32107c9ac1ca3e5f5afe2dfd163c2d73088ec698",
+      "published_lf_sha256": "d023c54613bb17c45ac32def32107c9ac1ca3e5f5afe2dfd163c2d73088ec698"
+    },
+    {
+      "path": "kindi/lightning_batch.cu",
+      "accepted_file_sha256": "ea36b4d4d58bf6a2cf1e4d1a177259ee6799f3a87e77877e2afbe7fcd6e73797",
+      "published_lf_sha256": "ea36b4d4d58bf6a2cf1e4d1a177259ee6799f3a87e77877e2afbe7fcd6e73797"
+    },
+    {
+      "path": "kindi/lightning_batch.py",
+      "accepted_file_sha256": "c5bb00a160ae9ad666fcf9896a6dff83f301281abe5a0ec6975756a8eba476d9",
+      "published_lf_sha256": "c5bb00a160ae9ad666fcf9896a6dff83f301281abe5a0ec6975756a8eba476d9"
+    },
+    {
+      "path": "kindi/lightning_kv.cu",
+      "accepted_file_sha256": "e36a3428aac6a79c89ddd79b04941ec6e0b9cf16af1f7fbe6c1fc9718a23a5d8",
+      "published_lf_sha256": "e36a3428aac6a79c89ddd79b04941ec6e0b9cf16af1f7fbe6c1fc9718a23a5d8"
+    },
+    {
+      "path": "kindi/moe.py",
+      "accepted_file_sha256": "ada8323b874db095ac611f45a0db1b3bdf707a9bc120e20b93535e7174926447",
+      "published_lf_sha256": "ada8323b874db095ac611f45a0db1b3bdf707a9bc120e20b93535e7174926447"
+    },
+    {
+      "path": "kindi/prefix_cache.py",
+      "accepted_file_sha256": "6ad04b04f68035b6e9b3b920a1db48ec83a4861911d31151cfb32bd506440d35",
+      "published_lf_sha256": "6ad04b04f68035b6e9b3b920a1db48ec83a4861911d31151cfb32bd506440d35"
+    }
+  ],
+  "optimization_environment": {
+    "KINDI_LIGHTNING_KERNELS": "optimized",
+    "KINDI_LIGHTNING_DENSE_PREFILL": "tile24",
+    "KINDI_LIGHTNING_EXPERT_PREFILL": "tile24",
+    "KINDI_LIGHTNING_ATTENTION": "split",
+    "KINDI_LIGHTNING_PREFILL_CHUNK": "256",
+    "KINDI_LIGHTNING_Q2_INPUT": "vec4",
+    "KINDI_LIGHTNING_Q2_DECODE": "or",
+    "KINDI_LIGHTNING_SSM_STRATEGY": "auto",
+    "KINDI_LIGHTNING_HEAD_LAYOUT": "split",
+    "KINDI_LIGHTNING_KV_READ": "direct",
+    "KINDI_LIGHTNING_ATTENTION_TILE_STRATEGY": "gqa16_vec2_32_bank4",
+    "KINDI_LIGHTNING_ATTENTION_WORKSPACE_MB": "512"
+  },
+  "scope": "Eight core files match accepted development after CRLF-to-LF normalization. Public version, source-offer, server wrapper and packaging changes are described in MODIFICATIONS.md.",
+  "model_weights_distributed": false
+}

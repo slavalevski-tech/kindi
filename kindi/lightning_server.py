@@ -132,12 +132,13 @@ class Runtime(object):
                 snapshot=self.cache.best(tokens,eng.fingerprint)
                 if snapshot is None:eng.reset()
                 else:eng.restore(snapshot);cached=eng.position
+                snapshot=None # Do not retain a restored entry after later LRU eviction.
             if cached<len(tokens):logits=eng.prefill(tokens[cached:],cancel=cancel.is_set,chunk_size=self.prefill_chunk)
             elif eng.last_logits is not None:logits=eng.last_logits
             else:
                 eng.reset();cached=0;logits=eng.prefill(tokens,cancel=cancel.is_set,chunk_size=self.prefill_chunk)
             eng.cp.cuda.Stream.null.synchronize();prefill_done=time.monotonic()
-            if len(tokens)>=self.cfg.get('prefix_min',512):self.cache.put(eng.snapshot())
+            if len(tokens)>=self.cfg.get('prefix_min',512):self.cache.capture(eng)
             self.phase='decode';rng=np.random.RandomState(req.get('seed'))
             decoder=codecs.getincrementaldecoder('utf-8')('replace')
             text='';generated=[];finish='length';sent_reason='';sent_content='';text_stop=False
@@ -172,7 +173,7 @@ class Runtime(object):
                     'prompt_tokens_details':{'cached_tokens':cached}},
                 'timing':{'prompt_s':prefill_done-start,'gen_s':elapsed,'gen_tok_s':len(generated)/max(elapsed,1e-9)},
                 'generated_ids':generated}
-            if eng.position>=self.cfg.get('prefix_min',512):self.cache.put(eng.snapshot())
+            if eng.position>=self.cfg.get('prefix_min',512):self.cache.capture(eng)
             self.requests+=1;completed=True
             return result
         finally:
@@ -187,7 +188,7 @@ def create_app(cfg,log=print):
     runtime=worker.submit(Runtime,cfg,log).result()
     from . import VERSION
     from .source_offer import SourceOfferMiddleware
-    app=FastAPI(title='Kindi Lightning V3',version=VERSION,
+    app=FastAPI(title='Kindi Lightning V6',version=VERSION,
         description='Modified Kindi by slavalevski-tech. Original Kindi copyright Amir Husain. '
                     'AGPL-3.0-only, without warranty. [Complete source and legal notices](/source).')
     app.add_middleware(SourceOfferMiddleware,root=os.path.dirname(os.path.dirname(__file__)))

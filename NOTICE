@@ -1,8 +1,8 @@
-Kindi 0.3.0 + Lightning backend V3 — notices
+Kindi 0.3.0 + Lightning backend V6 — notices
 
 Original Kindi: Copyright (c) 2026 Amir Husain.
 https://github.com/ahtx/kindi
-Modified fork maintained by slavalevski-tech; modifications dated 2026-10-30.
+Modified fork maintained by slavalevski-tech; modifications dated 2026-10-30 through 2026-11-01.
 This fork's program code is licensed under AGPL-3.0-only; see LICENSE and
 MODIFICATIONS.md. No warranty is provided. This fork is not an official
 release or endorsement by Amir Husain, NVIDIA, Nota AI or boro64.
@@ -28,6 +28,10 @@ runtime and their source files are not included in this release.
 Hugging Face Transformers (Apache-2.0) and state-spaces/mamba (Apache-2.0)
 were also used as references for cross-checks during development. They are
 not production runtime dependencies.
+
+Additional V5/V6 research/concept references and license-review scope are
+disclosed in PROVENANCE.md. Those references are not production dependencies
+and their source files are not vendored in this release.
 
 Cross-check sources (pinned revisions):
   Transformers NemotronH:

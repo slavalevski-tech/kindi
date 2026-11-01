@@ -1,4 +1,4 @@
-"""Source distribution for the Lightning V3 publication, added 2026-10-30.
+"""Source distribution for the Lightning V6 publication, added 2026-10-30.
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
@@ -85,15 +85,15 @@ class SourceOfferMiddleware:
         if path == '/source/archive':
             body = self.archive
             mime = b'application/zip'
-            headers += [(b'content-disposition', b'attachment; filename="kindi-lightning-v3-source.zip"')]
+            headers += [(b'content-disposition', b'attachment; filename="kindi-lightning-v6-source.zip"')]
         elif path == '/license':
             body = self.license
             mime = b'text/plain; charset=utf-8'
         else:
             body = ('<!doctype html><html lang="en"><meta charset="utf-8">'
-                    '<title>Kindi Lightning V3 — source and license</title><main>'
-                    '<h1>Kindi 0.3.0 + Lightning backend V3</h1>'
-                    '<p>Modified fork maintained by slavalevski-tech, 2026-10-30. '
+                    '<title>Kindi Lightning V6 — source and license</title><main>'
+                    '<h1>Kindi 0.3.0 + Lightning backend V6</h1>'
+                    '<p>Modified fork maintained by slavalevski-tech, 2026-11-01. '
                     'Original Kindi: Copyright (c) 2026 Amir Husain.</p>'
                     '<p>This software is supplied WITHOUT ANY WARRANTY. You may copy, '
                     'modify and redistribute it under AGPL-3.0-only.</p>'

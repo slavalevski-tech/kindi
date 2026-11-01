@@ -64,18 +64,40 @@ class Engine(object):
         self.ctx=int(ctx)
         if not 1<=self.ctx<=s.max_context:raise ValueError('invalid context capacity')
         self._validate_tensors()
+        self.head_layout=os.environ.get('KINDI_LIGHTNING_HEAD_LAYOUT','native')
+        self._validate_head_layout()
+        self.q2_input=os.environ.get('KINDI_LIGHTNING_Q2_INPUT','scalar')
+        if self.q2_input not in ('scalar','vec4'):raise ValueError('Q2 input mode must be scalar or vec4')
+        from .kv import validate_gqa_config
+        validate_gqa_config(os.environ.get('KINDI_LIGHTNING_ATTENTION_TILE_STRATEGY','legacy'),
+            kv_read or os.environ.get('KINDI_LIGHTNING_KV_READ','auto'),
+            os.environ.get('KINDI_LIGHTNING_ATTENTION','tiled'),
+            os.environ.get('KINDI_LIGHTNING_KERNELS','optimized'),(s.qheads,s.kvheads,s.hd),
+            kv_dtype=kv_dtype or os.environ.get('KINDI_LIGHTNING_KV','fp32'),ctx=self.ctx)
         self.ops=CudaOps();self.cp=cp=self.ops.cp
+        self.q2_decode=self.ops.q2_decode
+        if self.q2_decode=='or' and (self.ops.profile!='optimized' or self.q2_input!='vec4'):
+            raise ValueError('OR Q2 decode requires optimized vec4 input')
+        self.ssm_strategy=self.ops.ssm_strategy
+        if self.ssm_strategy!='legacy' and (s.heads,s.head_dim,s.state_size,s.groups)!=(64,64,128,8):
+            raise ValueError('Kepler SSM specialization requires Lightning geometry 64/64/128/8')
+        if self.q2_input=='vec4' and self.ops.profile!='optimized':raise ValueError('vec4 Q2 input requires optimized Lightning kernels')
+        self.ops.q2_input=self.q2_input
         self.kv_dtype=kv_dtype or os.environ.get('KINDI_LIGHTNING_KV','fp32')
         from .kv import KVCacheOps
         self.kv=KVCacheOps(self.ops,self.kv_dtype,kv_read)
+        if self.kv.tile_strategy!='legacy' and (s.qheads,s.kvheads,s.hd)!=(32,2,128):
+            raise ValueError('Kepler tile specialization requires the pinned Lightning geometry 32/2/128')
         self.kv_read=self.kv.read_mode
         if self.kv_dtype!='fp32' and (self.ops.profile!='optimized' or s.hd>128):raise ValueError('compressed KV requires optimized attention with dim<=128')
         self.memory=self.memory_plan(self.ctx)
         free,total=cp.cuda.runtime.memGetInfo()
-        if self.memory['total_with_reserve']>free:
-            raise MemoryError('memory plan requires %d bytes, free %d' % (self.memory['total_with_reserve'],free))
-        self.file.load_gpu(cp,reserve_bytes=self.memory['total_with_reserve']-self.memory['weights'])
+        if self.memory['allocation_peak_with_reserve']>free:
+            raise MemoryError('memory plan requires %d bytes, free %d' % (self.memory['allocation_peak_with_reserve'],free))
+        self.file.load_gpu(cp,reserve_bytes=self.memory['allocation_peak_with_reserve']-self.memory['weights_packed'])
         self.w=self.file.resident
+        self.head_codes=None;self.head_scales=None
+        if self.head_layout=='split':self._prepare_split_head()
         self.states={};self.histories={};self.keys={};self.values={}
         for i,kind in enumerate(s.blocks):
             if kind=='mamba':
@@ -87,15 +109,21 @@ class Engine(object):
         self.position=0;self.last_logits=None;self.tokens=[];self.failed=False
         self.source_sha256=self.file.source_hash()
         properties=cp.cuda.runtime.getDeviceProperties(cp.cuda.Device().id)
-        self.numeric_profile={'kernels':self.ops.profile,'dense_prefill':os.environ.get('KINDI_LIGHTNING_DENSE_PREFILL','batched_mv'),
-            'expert_prefill':os.environ.get('KINDI_LIGHTNING_EXPERT_PREFILL','grouped_mv'),'state':'fp32','kv':self.kv_dtype,'kv_read':self.kv_read,'attention':self.kv.attention_mode,'position':'nope',
-            'dt':'softplus_no_extra_clamp','state_version':self.state_version,'kernel_hash':self.ops.code_hash,
+        self.numeric_profile={'kernels':self.ops.profile,'q2_input':self.q2_input,'q2_decode':self.q2_decode,'head_layout':self.head_layout,'dense_prefill':os.environ.get('KINDI_LIGHTNING_DENSE_PREFILL','batched_mv'),
+            'expert_prefill':os.environ.get('KINDI_LIGHTNING_EXPERT_PREFILL','grouped_mv'),'state':'fp32','kv':self.kv_dtype,'kv_read':self.kv_read,'attention':self.kv.attention_mode,'attention_tile_strategy':self.kv.tile_strategy,'position':'nope',
+            'dt':'softplus_no_extra_clamp','ssm_strategy':self.ssm_strategy,'state_version':self.state_version,'kernel_hash':self.ops.code_hash,
             'compute_capability':[properties['major'],properties['minor']],'cuda_runtime':cp.cuda.runtime.runtimeGetVersion()}
         source=hashlib.sha256()
         for name in ('lightning.py','lightning_batch.py','lightning_tokenizer.py','packed.py','moe.py','kv.py'):
             with open(os.path.join(os.path.dirname(__file__),name),'rb') as f:source.update(f.read())
         self.numeric_profile['adapter_hash']=source.hexdigest()
         self.numeric_profile['attention_workspace_bytes']=self.memory['attention_scratch']
+        if self.kv.gqa_stage:
+            self.numeric_profile.update(attention_gqa_stage_keys=self.kv.gqa_stage,
+                attention_gqa_shared_bytes=self.kv.gqa_shared_bytes,attention_gqa_block_threads=512)
+        if self.kv.tile_strategy=='gqa16_vec2_32_bank4':
+            self.numeric_profile.update(attention_shared_bank_bytes_requested=4,
+                attention_shared_bank_scope='per_function_tiles_and_merge',attention_strategy_context_limit=65536)
         self.fingerprint=hashlib.sha256((self.source_sha256+json.dumps(self.numeric_profile,sort_keys=True)).encode()).hexdigest()
         log('Lightning CUDA loaded: %.3f GiB weights; context %d; FP32 state, %s KV' % (self.memory['weights']/2**30,self.ctx,self.kv_dtype))
 
@@ -129,9 +157,48 @@ class Engine(object):
                 for name,n in [('attn_q',s.qheads),('attn_k',s.kvheads),('attn_v',s.kvheads)]:require(p+name+'.weight',(n*s.hd,s.width),42)
                 require(p+'attn_output.weight',(s.width,s.qheads*s.hd),42)
 
+    def _validate_head_layout(self):
+        if self.head_layout not in ('native','split'):
+            raise ValueError('head layout must be native or split')
+        if self.head_layout=='split':
+            t=self.file.tensors['output.weight']
+            if (os.environ.get('KINDI_LIGHTNING_KERNELS','optimized')!='optimized'
+                    or (self.spec.vocab,self.spec.width)!=(131072,2688)
+                    or t.shape!=(131072,2688) or t.kind!=8 or t.nbytes!=374341632):
+                raise ValueError('split head requires optimized Lightning Q8 output 131072x2688')
+
+    def _prepare_split_head(self):
+        # Startup only: the packed loader has returned, and no state/KV/workspace
+        # is resident yet. self.w and file.resident are the SAME owner dictionary.
+        if (self.head_layout!='split' or hasattr(self,'states') or self.w is not self.file.resident
+                or self.head_codes is not None or self.head_scales is not None):
+            raise RuntimeError('split head conversion is startup-only')
+        cp=self.cp;packed=self.w['output.weight'];t=self.file.tensors['output.weight']
+        start=packed.data.ptr;end=start+packed.nbytes
+        if any(name!='output.weight' and a.data.ptr<end and a.data.ptr+a.nbytes>start
+                for name,a in self.w.items()):
+            raise ValueError('packed output aliases another resident tensor')
+        free,total=cp.cuda.runtime.memGetInfo()
+        if free<self.memory['head_split_bytes']+self.memory['reserve']:
+            raise MemoryError('insufficient startup memory for split head conversion')
+        codes=cp.empty(t.shape,cp.int8);scales=cp.empty((t.shape[0],t.shape[1]//32),cp.float32)
+        self.ops.k['head_q8_split'](((t.elements+255)//256,),(256,),
+            (packed,codes,scales,np.int32(t.elements//32)))
+        cp.cuda.get_current_stream().synchronize()
+        self.head_codes=codes;self.head_scales=scales
+        del self.w['output.weight']
+        del packed
+        # Return the retired 357MiB allocation to the driver BEFORE allocating KV.
+        # No packed output view is stored by Engine, PackedFile or CudaOps.
+        cp.get_default_memory_pool().free_all_blocks()
+
     def memory_plan(self,ctx):
         s=self.spec
-        weights=sum(t.nbytes for t in self.file.tensors.values())
+        packed_weights=sum(t.nbytes for t in self.file.tensors.values())
+        split=getattr(self,'head_layout','native')=='split'
+        head_packed=self.file.tensors['output.weight'].nbytes if split else 0
+        head_split=131072*2688+131072*84*4 if split else 0
+        weights=packed_weights-head_packed+head_split
         state=s.blocks.count('mamba')*(s.heads*s.head_dim*s.state_size+s.conv_dim*(s.conv-1))*4 if 'mamba' in s.blocks else 0
         dtype=getattr(self,'kv_dtype','fp32')
         if dtype=='q8_0' and s.hd%32:raise ValueError('Q8_0 KV requires head dimension divisible by 32')
@@ -139,13 +206,31 @@ class Engine(object):
         kv=s.blocks.count('attention')*2*ctx*row_bytes
         scratch=2*ctx*s.kvheads*s.hd*4 if dtype!='fp32' and getattr(self,'kv_read','auto')!='direct' else 0
         attention_scratch=self.kv.split_workspace_bytes if hasattr(self,'kv') and self.kv.attention_mode=='split' else 0
-        return {'weights':weights,'state':state,'kv':kv,'kv_scratch':scratch,'attention_scratch':attention_scratch,'reserve':512*1024**2,'total_with_reserve':weights+state+kv+scratch+attention_scratch+512*1024**2}
+        # Prefill accepts at most256 tokens/chunk; one reusable layer-sized
+        # parameter buffer holds delta and decay, never a copy per layer.
+        ssm_scratch=2*min(ctx,256)*s.heads*4 if getattr(self,'ssm_strategy','legacy') in ('auto','precomputed') else 0
+        reserve=512*1024**2
+        steady=weights+state+kv+scratch+attention_scratch+ssm_scratch+reserve
+        startup=packed_weights+head_split+reserve
+        plan={'weights':weights,'weights_packed':packed_weights,'head_packed_retired_bytes':head_packed,
+            'head_split_bytes':head_split,'head_steady_extra_bytes':head_split-head_packed,
+            'head_startup_transient_bytes':head_split,'startup_with_reserve':startup,
+            'allocation_peak_with_reserve':max(steady,startup),'state':state,'kv':kv,'kv_scratch':scratch,
+            'attention_scratch':attention_scratch,'ssm_scratch':ssm_scratch,'reserve':reserve,'total_with_reserve':steady}
+        if hasattr(self,'kv') and self.kv.gqa_stage:
+            # Static per-CTA shared memory is resident on an SM, not global VRAM.
+            plan['attention_static_shared_per_block']=self.kv.gqa_shared_bytes
+            plan['attention_block_threads']=512
+        return plan
 
     def linear(self,name,x,ids=None,per_input=False):
         t=self.file.tensors[name]
         n=t.shape[-2];k=t.shape[-1]
+        if name=='output.weight' and getattr(self,'head_layout','native')=='split':
+            if ids is not None or per_input:raise ValueError('split head requires one unselected input row')
+            return self.ops.split_head_linear(self.head_codes,self.head_scales,x)
         selected=int(ids.size) if ids is not None else 1
-        return self.ops.linear(self.w[name],x,n,k,t.kind,ids,selected,per_input)
+        return self.ops.linear(self.w[name],x,n,k,t.kind,ids,selected,per_input,decode=True)
 
     def kv_ops(self):
         if not hasattr(self,'kv'):
@@ -175,9 +260,16 @@ class Engine(object):
                 (projected[s.inner:s.inner+s.conv_dim],self.w[p+'ssm_conv1d.weight'],self.w[p+'ssm_conv1d.bias'],
                  self.histories[i],conv,np.int32(s.conv_dim),np.int32(s.conv)))
             y=cp.empty(s.inner,cp.float32)
-            self.ops.k['ssm_step']((s.inner,),(128,),
-                (conv,projected[s.inner+s.conv_dim:],self.w[p+'ssm_dt.bias'],self.w[p+'ssm_a'],self.w[p+'ssm_d'],
-                 self.states[i],y,np.int32(s.heads),np.int32(s.head_dim),np.int32(s.state_size),np.int32(s.groups)))
+            if self.ssm_strategy=='precomputed':
+                parameters=self.ops.ssm_parameters(projected[s.inner+s.conv_dim:],self.w[p+'ssm_dt.bias'],self.w[p+'ssm_a'],1,s.heads,s.heads)
+                self.ops.k['v5_ssm_step_precomputed']((s.inner,),(128,),
+                    (conv,parameters,self.w[p+'ssm_d'],self.states[i],y,
+                     np.int32(s.heads),np.int32(s.head_dim),np.int32(s.state_size),np.int32(s.groups)))
+            else:
+                kernel='ssm_step' if self.ssm_strategy=='legacy' else 'v5_ssm_step_shared'
+                self.ops.k[kernel]((s.inner,),(128,),
+                    (conv,projected[s.inner+s.conv_dim:],self.w[p+'ssm_dt.bias'],self.w[p+'ssm_a'],self.w[p+'ssm_d'],
+                     self.states[i],y,np.int32(s.heads),np.int32(s.head_dim),np.int32(s.state_size),np.int32(s.groups)))
             y=self.ops.norm(y,self.w[p+'ssm_norm.weight'].reshape(-1),s.eps,s.inner//s.groups,projected[:s.inner])
             y=self.linear(p+'ssm_out.weight',y)
         else:

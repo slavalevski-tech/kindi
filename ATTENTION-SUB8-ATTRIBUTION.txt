@@ -1,0 +1,28 @@
+Historical development attribution retained for the subwarp attention lineage.
+The statements below record the original development disclosure; the review
+scope and limitations are described in PROVENANCE.md.
+
+Provenance for attention_sub8.cu, 2026-10-31
+
+The eight-thread mapping and exact 32-lane-tree reconstruction were specified
+independently in this task and implemented against this fork's canonical V4
+lightning_kv.cu. The remaining score/softmax/value/merge behavior follows the
+existing V4 implementation and its existing project licensing. No third-party
+kernel source was copied or adapted into this prototype.
+
+Conceptual references consulted:
+
+NVIDIA FasterTransformer: THREADS_PER_KEY describes assigning a small thread
+group to a key. Its kernel choices/reductions are not used as an exactness
+reference for this implementation. Repository license: Apache-2.0.
+https://github.com/NVIDIA/FasterTransformer/blob/main/src/fastertransformer/kernels/decoder_masked_multihead_attention/decoder_masked_multihead_attention_template.hpp
+https://github.com/NVIDIA/FasterTransformer/blob/main/LICENSE
+
+vLLM Paged Attention design: thread groups cooperate on a query-key dot.
+The implementation here retains our pre-existing reduction tree rather than
+adopting a different dot/reduction algorithm. Repository license: Apache-2.0.
+https://docs.vllm.ai/en/latest/design/paged_attention/
+https://github.com/vllm-project/vllm/blob/main/LICENSE
+
+These are concept/provenance links, not dependencies or claims that those
+projects' current kernels run on Kepler. No additional software was installed.

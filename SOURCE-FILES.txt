@@ -2,11 +2,14 @@
 .env.example
 .gitattributes
 .gitignore
+ATTENTION-SUB8-ATTRIBUTION.txt
 BENCHMARKS-LIGHTNING.md
 BUILD.md
 CHANGELOG.md
+CHANGES-V3-TO-V6.md
 COMMERCIAL-LICENSE.md
 Dockerfile.lightning
+INSTALLATION.md
 LICENSE
 LICENSING.md
 LIGHTNING.md
@@ -14,6 +17,7 @@ LIGHTNING_ADAPTERS.md
 MODEL.md
 MODIFICATIONS.md
 NOTICE
+PROVENANCE.md
 README.md
 SOURCE-FILES.txt
 UPSTREAM-README.md
@@ -104,6 +108,7 @@ kindi/tcf.cu
 kindi/tokenizer.py
 kindi/tp.py
 kindi/verify.py
+licenses/Lightning-V6-source-provenance.json
 licenses/Nemotron-OpenMDW-1.1.txt
 lightning.conf.example
 release_entry.py
@@ -126,10 +131,16 @@ tests/profile_lightning.py
 tests/stress_api.py
 tests/test_failure.py
 tests/test_generic_moe.py
+tests/test_gqa_dispatch_cpu.py
+tests/test_head_split_cpu.py
 tests/test_kv.py
 tests/test_lightning_batch.py
 tests/test_lightning_ops.py
 tests/test_loader.py
+tests/test_prefix_capture.py
 tests/test_protocol.py
+tests/test_q2_mv_vec4.py
+tests/test_q2_or_dispatch.py
 tests/test_sampling.py
 tests/test_source_offer.py
+tests/test_vector2_cpu.py

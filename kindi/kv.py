@@ -3,18 +3,44 @@ import os
 import numpy as np
 
 MODES=('fp32','fp16','q8_0')
+GQA_VECTOR2='gqa16_vec2_32_bank4'
+GQA_TILE_STAGES={'gqa16_32':32,'gqa16_64':64,GQA_VECTOR2:32}
+
+def validate_gqa_config(strategy,read_mode,attention_mode,profile,geometry=None,kv_dtype=None,ctx=None):
+    """Validate fixed-model GQA before CUDA/weight allocation in Engine."""
+    stage=GQA_TILE_STAGES.get(strategy,0)
+    if stage:
+        if profile!='optimized' or attention_mode!='split':
+            raise ValueError('GQA16 attention requires optimized split attention')
+        if read_mode!='direct':raise ValueError('GQA16 attention requires explicit direct KV reads')
+        if geometry is not None and tuple(geometry)!=(32,2,128):
+            raise ValueError('GQA16 attention requires Lightning geometry 32/2/128')
+        if strategy==GQA_VECTOR2:
+            if kv_dtype!='fp16':raise ValueError('Vector2 bank4 requires FP16 KV')
+            if ctx is not None and not 1<=ctx<=65536:
+                raise ValueError('Vector2 bank4 requires context capacity <=65536')
+    return stage
 
 class KVCacheOps(object):
     def __init__(self,ops,mode,read_mode=None):
         if mode not in MODES:raise ValueError('KV format must be fp32, fp16 or q8_0')
-        self.ops=ops;self.cp=ops.cp;self.mode=mode;self.error=self.cp.zeros(1,self.cp.int32)
+        self.ops=ops;self.cp=ops.cp;self.mode=mode
         self.read_mode=read_mode or os.environ.get('KINDI_LIGHTNING_KV_READ','auto')
         if self.read_mode not in ('direct','expanded','auto'):raise ValueError('KV read mode must be direct, expanded or auto')
         self.attention_mode=os.environ.get('KINDI_LIGHTNING_ATTENTION','tiled')
         if self.attention_mode not in ('tiled','warp','split'):raise ValueError('attention mode must be tiled, warp or split')
+        self.tile_strategy=os.environ.get('KINDI_LIGHTNING_ATTENTION_TILE_STRATEGY','legacy')
+        if self.tile_strategy not in ('legacy','sub8','quad','auto','gqa16_32','gqa16_64',GQA_VECTOR2):
+            raise ValueError('unknown attention tile strategy')
+        if self.tile_strategy!='legacy' and (self.attention_mode!='split' or ops.profile!='optimized'):
+            raise ValueError('Kepler attention tile strategies require optimized split attention')
+        self.gqa_stage=validate_gqa_config(self.tile_strategy,self.read_mode,self.attention_mode,ops.profile,kv_dtype=self.mode)
+        self.gqa_shared_bytes=(self.gqa_stage*128+16*128)*4 if self.gqa_stage else 0
         self.split_workspace_bytes=int(os.environ.get('KINDI_LIGHTNING_ATTENTION_WORKSPACE_MB','128'))*1024**2
         if not 1024**2<=self.split_workspace_bytes<=512*1024**2:raise ValueError('attention workspace must be 1..512 MiB')
+        self.error=self.cp.zeros(1,self.cp.int32)
         self.capacity=0;self.scratch=None;self.split_scratch=None
+        self.bank_requests=ops.configure_attention_bank4() if self.tile_strategy==GQA_VECTOR2 else ()
 
     def row_bytes(self,heads,dim):
         if self.mode=='q8_0':
@@ -24,6 +50,8 @@ class KVCacheOps(object):
 
     def allocate(self,ctx,heads,dim):
         if min(ctx,heads,dim)<1:raise ValueError('invalid KV dimensions')
+        if self.tile_strategy==GQA_VECTOR2 and ctx>65536:
+            raise ValueError('Vector2 bank4 requires context capacity <=65536')
         self.capacity=max(ctx,self.capacity)
         self.row_bytes(heads,dim)
         shape=(ctx,heads,(dim//32)*34 if self.mode=='q8_0' else dim)
@@ -46,6 +74,10 @@ class KVCacheOps(object):
     def attention(self,q,k,v,past,tokens,qheads,kvheads,dim):
         self.validate_storage(k,kvheads,dim);self.validate_storage(v,kvheads,dim)
         if min(tokens,qheads,kvheads,dim)<1 or dim>128 or qheads%kvheads or past<0 or past+tokens>min(k.shape[0],v.shape[0]):raise ValueError('invalid attention dimensions or range')
+        if self.tile_strategy==GQA_VECTOR2 and max(k.shape[0],v.shape[0],past+tokens)>65536:
+            raise ValueError('Vector2 bank4 requires context capacity <=65536')
+        if self.tile_strategy!='legacy' and (qheads,kvheads,dim)!=(32,2,128):
+            raise ValueError('Kepler attention tiles require the pinned Lightning geometry 32/2/128')
         if not isinstance(q,self.cp.ndarray) or q.dtype!=self.cp.float32 or not q.flags.c_contiguous or q.size!=tokens*qheads*dim:raise ValueError('invalid attention query')
         out=self.cp.empty((tokens,qheads*dim),self.cp.float32)
         name={'fp32':'attention_tiled','fp16':'attention_fp16','q8_0':'attention_q8'}[self.mode]
@@ -69,7 +101,22 @@ class KVCacheOps(object):
             query=q.reshape(tokens,qheads*dim)
             for start in range(0,tokens,batch):
                 count=min(batch,tokens-start);position=past+start
-                self.ops.k['attention_tiles_'+dtype]((qheads,count,tiles),(128,),
+                strategy=self.tile_strategy
+                if strategy=='auto':
+                    # Use actual subbatch size: at128K a128MiB workspace fits
+                    # only7 queries. Pairing is useful when enough work is
+                    # available, whereas sub8 avoids its partial-pair overhead.
+                    strategy='quad' if ((dtype=='q8' and count>=2) or (dtype=='fp32' and count>=8)) else 'sub8'
+                kernel='attention_tiles_'+dtype
+                grid=(qheads,count,tiles)
+                block=(128,)
+                if self.gqa_stage:
+                    kernel+=('_gqa16_vector2_typed32' if strategy==GQA_VECTOR2 else '_gqa16_typed'+str(self.gqa_stage))
+                    grid=(kvheads,count,tiles);block=(512,)
+                elif strategy=='quad':
+                    kernel+='_quad';grid=(16,(count+1)//2,tiles)
+                elif strategy=='sub8':kernel+='_sub8_fixed'
+                self.ops.k[kernel](grid,block,
                     (query[start:start+count],k,v,self.split_scratch,np.int32(count),np.int32(position),np.int32(qheads),np.int32(kvheads),np.int32(dim),np.int32(tiles)))
                 self.ops.k['attention_merge_tiles']((qheads,count),(128,),
                     (self.split_scratch,out[start:start+count],np.int32(count),np.int32(position),np.int32(qheads),np.int32(dim),np.int32(tiles)))

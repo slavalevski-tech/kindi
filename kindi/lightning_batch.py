@@ -8,8 +8,8 @@ class BatchOps(object):
         self.eng=engine;self.ops=engine.ops;self.cp=engine.cp;self.k=self.ops.k;self.null=self.ops.null
         self.expert_mode=os.environ.get('KINDI_LIGHTNING_EXPERT_PREFILL','grouped_mv')
         self.dense_mode=os.environ.get('KINDI_LIGHTNING_DENSE_PREFILL','batched_mv')
-        if self.expert_mode not in ('gemm','grouped_mv','grouped_mv4','cublas','tile8','tile16'):raise ValueError('unknown expert prefill mode')
-        if self.dense_mode not in ('tiled','cublas','batched_mv','tile8','tile16'):raise ValueError('unknown dense prefill mode')
+        if self.expert_mode not in ('gemm','grouped_mv','grouped_mv4','cublas','tile8','tile16','tile24','tile32'):raise ValueError('unknown expert prefill mode')
+        if self.dense_mode not in ('tiled','cublas','batched_mv','tile8','tile16','tile24','tile32'):raise ValueError('unknown dense prefill mode')
         self.alpha=np.array(1,dtype=np.float32);self.beta=np.array(0,dtype=np.float32)
         self.handle=None
 
@@ -52,13 +52,13 @@ class BatchOps(object):
         t=self.eng.file.tensors[name];rows,cols=t.shape[-2:];cp=self.cp
         m=x.shape[0] if dispatch is None else dispatch['assignments'];out=cp.empty((m,rows),cp.float32)
         mode=self.dense_mode if dispatch is None else self.expert_mode
-        if mode in ('tile8','tile16'):
+        if mode in ('tile8','tile16','tile24','tile32'):
             if t.kind!=42:
                 if dispatch is not None:raise ValueError(mode+' requires Q2_0 experts')
                 return self.ops.linear(self.eng.w[name],x,rows,cols,t.kind,selected=m,per_input=True).reshape(m,rows)
             jobs=(m+7)//8 if dispatch is None else dispatch['maxjobs']
             arrays=[self.null]*5 if dispatch is None else [dispatch[k] for k in ('order','expert','start','length','count')]
-            row_tile=16 if mode=='tile16' else 8
+            row_tile=int(mode[4:])
             self.k['q2_'+mode](((rows+row_tile-1)//row_tile,jobs),(256,),tuple([self.eng.w[name],x,out,np.int32(rows),np.int32(cols),np.int32(m),
                 np.int32(dispatch['topk'] if dispatch else 1),np.int32(per_assignment if dispatch else True)]+arrays))
             return out
@@ -127,9 +127,18 @@ class BatchOps(object):
                 (projected,eng.w[p+'ssm_conv1d.weight'],eng.w[p+'ssm_conv1d.bias'],eng.histories[i],conv,
                  np.int32(m),np.int32(s.conv_dim),np.int32(s.conv),np.int32(stride),np.int32(s.inner)))
             y=cp.empty((m,s.inner),cp.float32)
-            self.k['ssm_chunk']((s.inner,),(128,),
-                (conv,projected,eng.w[p+'ssm_dt.bias'],eng.w[p+'ssm_a'],eng.w[p+'ssm_d'],eng.states[i],y,
-                 np.int32(m),np.int32(s.heads),np.int32(s.head_dim),np.int32(s.state_size),np.int32(s.groups),np.int32(stride)))
+            strategy=eng.ssm_strategy
+            if strategy=='auto':strategy='precomputed' if m>=7 else 'shared'
+            if strategy=='precomputed':
+                parameters=self.ops.ssm_parameters(projected.reshape(-1)[s.inner+s.conv_dim:],eng.w[p+'ssm_dt.bias'],eng.w[p+'ssm_a'],m,s.heads,stride)
+                self.k['v5_ssm_chunk_precomputed']((s.inner,),(128,),
+                    (conv,parameters,eng.w[p+'ssm_d'],eng.states[i],y,
+                     np.int32(m),np.int32(s.heads),np.int32(s.head_dim),np.int32(s.state_size),np.int32(s.groups)))
+            else:
+                kernel='ssm_chunk' if strategy=='legacy' else 'v5_ssm_chunk_shared'
+                self.k[kernel]((s.inner,),(128,),
+                    (conv,projected,eng.w[p+'ssm_dt.bias'],eng.w[p+'ssm_a'],eng.w[p+'ssm_d'],eng.states[i],y,
+                     np.int32(m),np.int32(s.heads),np.int32(s.head_dim),np.int32(s.state_size),np.int32(s.groups),np.int32(stride)))
             y=self.norm(y,eng.w[p+'ssm_norm.weight'],s.groups,projected)
             y=self.linear(p+'ssm_out.weight',y)
         else:

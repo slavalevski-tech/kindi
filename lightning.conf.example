@@ -1,14 +1,14 @@
-# Lightning V3 public example, 2026-10-30; no credentials included.
+# Lightning V6 public example, 2026-11-01; no credentials included.
 [kindi]
 pack = /workspace/pack
 state_dir = /workspace/state
 host = 0.0.0.0
 port = 8093
 model_name = nemotron-lightning-30b-a3b-ternary
-ctx = 32768
+ctx = 65536
 head = exact
-lightning_kv = fp32
-checkpoint_budget_mb = 512
+lightning_kv = fp16
+checkpoint_budget_mb = 1024
 prefix_max = 8
 prefix_min = 512
 max_tokens = 1024

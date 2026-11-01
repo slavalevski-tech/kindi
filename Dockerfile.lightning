@@ -1,4 +1,4 @@
-# Modified 2026-10-30 by slavalevski-tech; AGPL-3.0-only.
+# Modified 2026-10-30 and 2026-11-01 by slavalevski-tech; AGPL-3.0-only.
 # First stage follows upstream docker/Dockerfile with RAM-backed CUDA extraction.
 # BuildKit is required; no private base image is needed.
 # Kindi runtime image. CUDA 10.2 supports the Quadro K420 (sm_30) and the GTX 1080 (sm_61).
@@ -42,7 +42,7 @@ ENTRYPOINT ["python3", "-m", "kindi"]
 CMD ["serve"]
 
 FROM kindi_base
-LABEL org.opencontainers.image.title="Kindi 0.3.0 + Lightning backend V3 for K6000" \
+LABEL org.opencontainers.image.title="Kindi 0.3.0 + Lightning backend V6 for K6000" \
       org.opencontainers.image.licenses="AGPL-3.0-only" \
       org.opencontainers.image.description="Isolated native CUDA 10.2 / sm_35 Lightning adapter; model mounted separately"
 WORKDIR /opt/lightning

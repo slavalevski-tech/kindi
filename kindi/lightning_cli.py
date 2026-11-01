@@ -43,7 +43,7 @@ def chat(cfg,args,log=print):
     from .lightning_server import Runtime
     runtime=Runtime(cfg,log);messages=[]
     if args.system:messages.append({'role':'system','content':args.system})
-    print('Kindi Lightning V3; modified by slavalevski-tech, 2026-10-30. Original Kindi: Amir Husain.')
+    print('Kindi Lightning V6; modified by slavalevski-tech, 2026-11-01. Original Kindi: Amir Husain.')
     print('AGPL-3.0-only; WITHOUT ANY WARRANTY. See LICENSE and MODIFICATIONS.md for copying terms/source.')
     print('Kindi Lightning: /reset starts over; /exit quits.')
     while True:

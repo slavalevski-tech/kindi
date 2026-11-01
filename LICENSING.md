@@ -39,3 +39,20 @@ Upstream requirements reviewed: LICENSE, NOTICE, COMMERCIAL-LICENSE.md and READM
 at the pinned Kindi commit. No separate approval requirement for an AGPL fork was
 found in these documents. This is an implementation checklist, not a claim of
 endorsement or a legal certification.
+
+## V6 provenance and contribution agreement
+
+See PROVENANCE.md for the AI-assisted code/reference/license review and its
+limitations, including the dependency inventory. Known third-party licenses
+remain applicable; the CLA does not replace them or turn third-party material
+into the maintainer's own work.
+
+On 2026-11-01 the maintainer explicitly agreed to Kindi CLA 1.1, including the
+earlier submission in upstream PR #16:
+https://github.com/ahtx/kindi/pull/16#issuecomment-6551899747
+The agreement also applies to later contributions under that version. It gives
+the upstream author separate permissions for the maintainer's contribution;
+it does not grant the general public a commercial-license exception for this fork.
+The public program license remains AGPL-3.0-only. Original Kindi rights remain
+with its author. No official contributor credit, upstream acceptance or endorsement
+is implied by publishing this fork or accepting the CLA.

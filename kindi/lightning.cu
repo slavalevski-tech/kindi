@@ -38,7 +38,7 @@ extern "C" __global__ void packed_mv(const unsigned char* w,const float* x,float
     if(lane==0) y[(size_t)s*rows+row]=sum;
 }
 
-template<int TYPE> __device__ void packed_mv_specialized(const unsigned char* w,const float* x,float* y,
+template<int TYPE, bool VEC4=false> __device__ void packed_mv_specialized(const unsigned char* w,const float* x,float* y,
     const int* ids,int rows,int cols,int selected,int per_input) {
     int lane=threadIdx.x&31,row=blockIdx.x*4+(threadIdx.x>>5),s=blockIdx.y;
     if(row>=rows || s>=selected)return;
@@ -54,8 +54,18 @@ template<int TYPE> __device__ void packed_mv_specialized(const unsigned char* w,
             float d=__half2float(__ushort_as_half(__ldg(reinterpret_cast<const unsigned short*>(b))));
             unsigned q=__ldg(b+2+(c%64)/4);
             float partial=0;
-            #pragma unroll
-            for(int j=0;j<4;j++)partial=fmaf((float)((int)((q>>(2*j))&3)-1),__ldg(xr+c+j),partial);
+            if(VEC4) {
+                // Decode inputs and every per-input row are 16-byte aligned.
+                // Keep the four FMAs, scale FMA and warp reduction in the scalar order.
+                float4 v=__ldg(reinterpret_cast<const float4*>(xr+c));
+                partial=fmaf((float)((int)(q&3)-1),v.x,partial);
+                partial=fmaf((float)((int)((q>>2)&3)-1),v.y,partial);
+                partial=fmaf((float)((int)((q>>4)&3)-1),v.z,partial);
+                partial=fmaf((float)((int)((q>>6)&3)-1),v.w,partial);
+            } else {
+                #pragma unroll
+                for(int j=0;j<4;j++)partial=fmaf((float)((int)((q>>(2*j))&3)-1),__ldg(xr+c+j),partial);
+            }
             sum=fmaf(d,partial,sum);
         }
     } else {
@@ -69,6 +79,9 @@ template<int TYPE> __device__ void packed_mv_specialized(const unsigned char* w,
 }
 extern "C" __global__ void q2_mv(const unsigned char* w,const float* x,float* y,const int* ids,
     int rows,int cols,int selected,int per_input) {packed_mv_specialized<42>(w,x,y,ids,rows,cols,selected,per_input);}
+// Experimental opt-in: caller must provide contiguous, 16-byte-aligned FP32 input.
+extern "C" __global__ void q2_mv_vec4(const unsigned char* w,const float* x,float* y,const int* ids,
+    int rows,int cols,int selected,int per_input) {packed_mv_specialized<42,true>(w,x,y,ids,rows,cols,selected,per_input);}
 extern "C" __global__ void q8_mv(const unsigned char* w,const float* x,float* y,const int* ids,
     int rows,int cols,int selected,int per_input) {packed_mv_specialized<8>(w,x,y,ids,rows,cols,selected,per_input);}
 
@@ -176,4 +189,54 @@ extern "C" __global__ void attention(const float* q,const float* k,const float* 
         __syncthreads();
     }
     if(t<dim)out[h*dim+t]=acc/l;
+}
+
+
+// Optional generation-only decoder, derived from frozen q2_magic_mv_or.
+// Every byte, including code3, yields the identical FP32 coefficient bits.
+template<int SHIFT> __device__ __forceinline__ float q2_or_coeff(unsigned q) {
+    unsigned bits=0x4b000000u|((q>>SHIFT)&3u);
+    return __fsub_rn(__int_as_float(bits),8388609.0f);
+}
+
+__device__ __forceinline__ void q2_or_mv_body(const unsigned char* w,const float* x,float* y,const int* ids,int rows,int cols,int selected,int per_input) {
+    int lane=threadIdx.x&31,row=blockIdx.x*4+(threadIdx.x>>5),s=blockIdx.y;
+    if(row>=rows || s>=selected)return;
+    int e=ids?ids[s]:0;const size_t rb=(size_t)(cols/64)*18;
+    const unsigned char* wr=w+((size_t)e*rows+row)*rb;
+    const float* xr=x+(per_input?(size_t)s*cols:0);float sum=0;
+    for(int c=lane*4;c<cols;c+=128) {
+        const unsigned char* b=wr+(c/64)*18;
+        float d=__half2float(__ushort_as_half(__ldg(reinterpret_cast<const unsigned short*>(b))));
+        unsigned q=__ldg(b+2+(c%64)/4);float4 value=__ldg(reinterpret_cast<const float4*>(xr+c));
+        float partial=fmaf(q2_or_coeff<0>(q),value.x,0.f);
+        partial=fmaf(q2_or_coeff<2>(q),value.y,partial);
+        partial=fmaf(q2_or_coeff<4>(q),value.z,partial);
+        partial=fmaf(q2_or_coeff<6>(q),value.w,partial);
+        sum=fmaf(d,partial,sum);
+    }
+    sum=warp_sum(sum);if(lane==0)y[(size_t)s*rows+row]=sum;
+}
+
+extern "C" __global__ void q2_mv_vec4_or(const unsigned char* w,const float* x,float* y,const int* ids,
+    int rows,int cols,int selected,int per_input) {q2_or_mv_body(w,x,y,ids,rows,cols,selected,per_input);}
+
+// Optional fixed Lightning output head: exact split Q8 layout.
+extern "C" __global__ void head_q8_split(const unsigned char* packed,signed char* codes,float* scales,int blocks) {
+    int i=blockIdx.x*blockDim.x+threadIdx.x;
+    if(i>=blocks*32)return;
+    int block=i>>5,lane=i&31;const unsigned char* b=packed+(size_t)block*34;
+    codes[i]=__ldg(reinterpret_cast<const signed char*>(b+2)+lane);
+    if(lane==0)scales[block]=__half2float(__ushort_as_half(__ldg(reinterpret_cast<const unsigned short*>(b))));
+}
+extern "C" __global__ void head_q8_split_mv(const signed char* codes,const float* scales,const float* x,float* y,int rows,int cols) {
+    int lane=threadIdx.x&31,row=blockIdx.x*4+(threadIdx.x>>5);
+    if(row>=rows)return;
+    const signed char* wr=codes+(size_t)row*cols;
+    const float* sr=scales+(size_t)row*(cols/32);float sum=0;
+    for(int c=lane;c<cols;c+=32) {
+        float d=__ldg(sr+c/32);
+        sum=fmaf(d*(float)__ldg(wr+c),__ldg(x+c),sum);
+    }
+    sum=warp_sum(sum);if(lane==0)y[row]=sum;
 }

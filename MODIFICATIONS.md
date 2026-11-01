@@ -1,3 +1,35 @@
+# V6 modified-version notice — 2026-11-01
+
+Kindi 0.3.0 + Lightning backend V6 is maintained by slavalevski-tech under
+AGPL-3.0-only. Original Kindi: Copyright (c) 2026 Amir Husain. The full upstream
+license/commercial-license text and original notices remain preserved.
+
+Accepted development source: `3f03ba3fad655088c5d7819f30f18a3da109d17d`.
+Public V3 base: `51c134248e9ff48ff1fa051adefbf228134359cb`.
+The public Git history continues the original upstream/fork history; private
+snapshot histories, host wrappers, credentials and development evidence are not imported.
+
+Changes since published V3: eight accepted core files (kv.py, lightning.cu,
+lightning.py, lightning_batch.cu, lightning_batch.py, lightning_kv.cu, moe.py,
+prefix_cache.py), the matching cache lifetime/admission changes in
+lightning_server.py, new CPU/quantization tests, and publication documentation,
+source-offer labels, release identity, explicit launch/config defaults and source manifest.
+Numerical CUDA/adapter code matches the accepted source after line-ending normalization.
+The server retains the public AGPL source offer. New tests use explicit model
+arguments instead of internal host paths; the host-specific RTX launcher is excluded.
+See VALIDATION.md and PROVENANCE.md for validation and licensing-review boundaries.
+
+ChatGPT/Codex (GPT-6 Astra and GPT-6.1 Sol) generated implementation and assisted
+development, testing, DevOps and the provenance review. The maintainer supplied
+goals, hardware/resources and experimental direction. No independent human code
+or legal audit is claimed. The model weights are unchanged and not distributed.
+
+SOURCE-FILES.txt lists the complete V6 public payload. The following original
+publication record documents V3 and its earlier modifications; its profile and
+file inventory are historical and are superseded by the V6 manifest/defaults above.
+
+---
+
 # Modified version notice — 2026-10-30
 
 This is Kindi 0.3.0 + Lightning backend V3, maintained by slavalevski-tech,

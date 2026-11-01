@@ -1,41 +1,34 @@
-# Lightning V3: historical K6000 validation and measurements
+# Lightning benchmark methodology
 
-Measured 2026-10-30 on a Quadro K6000 (12 GB), i7-5775C host, NVIDIA driver
-470.256.02, CUDA 10.2 / CuPy 9.6 / Python 3.6.9, GPU clock 993 MHz. These are measurements
-of accepted development V3, not a fresh run of the publication container.
+Performance tables, projected rates and V3-to-V6 percentage gains are intentionally
+withheld from this V6 publication. A complete benchmark will be run and published
+separately. No throughput gain should be inferred from the optimization names or
+the correctness checks.
 
-| Input tokens | Prefill tok/s | Decode tok/s | Read seconds |
-|---:|---:|---:|---:|
-| 1,000 | 81.5201 | 27.6823 | 12.2669 |
-| 4,000 | 77.4174 | 26.5961 | 51.6680 |
-| 8,000 | 72.6253 | 25.3085 | 110.1545 |
-| 16,000 | 64.1978 | 23.0744 | 249.2297 |
+## Planned comparison
 
-Medians of three independent reset/full-prefill runs per size after full warmup;
-FP32 KV, context 32768, 256 decode steps, no prefix-cache reuse. Input counts include
-the chat template. EOS is ignored only for the fixed-length benchmark. Synchronized
-engine wall time excludes model loading, warmup, HTTP/network, snapshots, logit
-copies and correctness checks; rare prefill progress messages are included.
-All repeats matched state/logit hashes and token IDs. Peak observed temperature
-was 68 C. Validation buffers inflate measured VRAM, so those figures are not presented
-as production API memory consumption.
+- Use the same K6000, pinned GGUF, rendered input token IDs, sampling policy and
+  output length. Record source/image revisions, driver, CUDA/CuPy/Python versions,
+  device clocks and temperature, context capacity, KV dtype and every profile flag.
+- Measure input lengths 1,000, 4,000, 8,000 and 16,000 tokens, including chat template.
+- Use **256 generation steps** for both versions, with the same documented EOS policy.
+- Warm each fresh process consistently, then reset before every full prefill.
+  Disable prefix reuse. Use repeated interleaved runs and report medians and spread.
+- Synchronize GPU boundaries. State whether tokenization, loading, compilation,
+  sampling, scalar transfers, HTTP, logging and validation copies are timed.
+- Check token/logit/state results under a declared numerical comparison. FP16 KV
+  and FP32 KV are different profiles; document this rather than claiming byte parity.
+- Separate operator timing, engine timing, time-to-first-token and HTTP/SSE throughput.
+  Save commands and evidence so another person can reproduce the test.
 
-A separate controlled tile8/tile16/tile16/tile8 ABBA comparison with 32 outputs
-measured prefill gains of 17.31% at 1024 input and 16.42% at 4096 input. Decode did not
-materially improve. This is V2 versus V3 on the same model/hardware, not a comparison
-with Bonsai or Nemotron Bolt. It does not support model-quality claims.
+## Existing evidence and its limits
 
-Historical acceptance: 57 operator cases on K6000 and RTX 4080; independent reference
-checks; complete states/logits/IDs; independent full tile8/tile16 FP32 prefills at
-32736+32 tokens; three-depth 32K retrieval with 3/3 facts for FP32/FP16/Q8; API 100-request
-stress, cancellation, cache and restart. The compressed-profile retrieval compares
-its last 512-token tail from a shared prefix; it is not two full independent prefills.
-FP16/Q8 storage is lossy and is not claimed bit-identical to FP32.
+Historical V3 generation measurements used 256 steps at capacity 32,768 with FP32
+KV. The saved short V6 engineering comparison used 64 steps at capacity 65,536
+with FP16 KV and compared V5 with V6. Those are different protocols. They do not
+establish a matched V3/V6 speed comparison, 256-step V6 rates, or an 8K/16K V6 series.
+The new release does not republish their speed tables or extrapolate their values.
 
-Full-model acceptance stops at 32768 total tokens. 64K/128K, speculative/MTP and
-arbitrary other MoE/Gemma checkpoints are not accepted features. cuBLAS profiles
-that change reduction order remain experimental. Legacy cuda-memcheck was excluded
-after a historical nvidia_uvm kernel oops; this is not a claim that the incident's
-cause was conclusively established. Raw internal reports contain host-specific
-metadata and are not automatically redistributed. Reproduction scripts and the
-small numerical oracle fixtures are included in this source release.
+Correctness and API acceptance are documented in [VALIDATION.md](VALIDATION.md).
+Use [INSTALLATION.md](INSTALLATION.md) for setup. Do not benchmark a GPU that is
+serving another workload without coordinating that workload first.
