@@ -1,4 +1,7 @@
-Kindi 0.3.0 + Lightning backend V6 — notices
+Lightning Backend V6 for NVIDIA Quadro K6000 — notices
+
+Lightning Backend V6 is the fork-specific Quadro K6000 inference backend for
+Kindi 0.3.0. V6 identifies the backend implementation, not a model version.
 
 Original Kindi: Copyright (c) 2026 Amir Husain.
 https://github.com/ahtx/kindi
@@ -11,7 +14,7 @@ The unchanged commercial-licensing information in COMMERCIAL-LICENSE.md
 refers to the original Kindi author's offering. It is not an alternative
 license grant for this fork's additional contributions or third-party models.
 
-Lightning model provenance (weights are NOT distributed here):
+External Nemotron Lightning model provenance (weights are NOT distributed here):
 NVIDIA NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16
   -> Nota AI ternary checkpoint
   -> boro64 GGUF conversion.

@@ -1,5 +1,9 @@
 # V6 modified-version notice — 2026-11-01
 
+Release scope: Lightning Backend V6 is the Kindi inference backend optimized and
+validated for NVIDIA Quadro K6000. V6 names the backend implementation; the external
+Nemotron Lightning model is separately distributed and retains its own authorship.
+
 Kindi 0.3.0 + Lightning backend V6 is maintained by slavalevski-tech under
 AGPL-3.0-only. Original Kindi: Copyright (c) 2026 Amir Husain. The full upstream
 license/commercial-license text and original notices remain preserved.

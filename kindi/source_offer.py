@@ -91,8 +91,10 @@ class SourceOfferMiddleware:
             mime = b'text/plain; charset=utf-8'
         else:
             body = ('<!doctype html><html lang="en"><meta charset="utf-8">'
-                    '<title>Kindi Lightning V6 — source and license</title><main>'
-                    '<h1>Kindi 0.3.0 + Lightning backend V6</h1>'
+                    '<title>Lightning Backend V6 for Quadro K6000 — source and license</title><main>'
+                    '<h1>Lightning Backend V6 for NVIDIA Quadro K6000</h1>'
+                    '<p>Kindi 0.3.0 inference backend for NVIDIA Quadro K6000. '
+                    'The external Nemotron Lightning model is obtained separately; no model weights are included.</p>'
                     '<p>Modified fork maintained by slavalevski-tech, 2026-11-01. '
                     'Original Kindi: Copyright (c) 2026 Amir Husain.</p>'
                     '<p>This software is supplied WITHOUT ANY WARRANTY. You may copy, '

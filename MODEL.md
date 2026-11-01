@@ -1,4 +1,8 @@
-# External model identity
+# External model used by the Quadro K6000 backend
+
+**Lightning Backend V6** names this fork's Kindi inference backend, optimized and
+validated for NVIDIA Quadro K6000. The model identified below is a separate
+third-party artifact; its name, authorship, version and license are unchanged.
 
 No weights are distributed, downloaded by the build, or placed in the source archive.
 Use an existing file matching:

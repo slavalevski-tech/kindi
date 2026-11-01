@@ -1,4 +1,4 @@
-# Build and run Lightning V6 on a K6000
+# Build and run Lightning Backend V6 on NVIDIA Quadro K6000
 
 This source-only fork includes the complete backend; original Kindi need not be
 installed separately. V6 was accepted on K6000 in development on 2026-10-31. The

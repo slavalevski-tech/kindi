@@ -1,4 +1,11 @@
-# Kindi 0.3.0 + Lightning backend V6 for Quadro K6000
+# Lightning Backend V6 for NVIDIA Quadro K6000
+
+**Lightning Backend V6 is the fork-specific Kindi 0.3.0 inference backend for
+NVIDIA Quadro K6000 (12 GB, Kepler sm_35).** It provides native CUDA/CuPy execution
+for the separately distributed Nemotron Lightning model. This release contains
+backend source and build/launch tools; model weights and a chat frontend are not included.
+**V6 is the backend implementation version.** The external model retains its own
+name, authors and license.
 
 An independent fork of [Kindi](https://github.com/ahtx/kindi), originally written
 by **Amir Husain**. Fork-specific Lightning work is maintained by
@@ -9,7 +16,7 @@ This backend runs **boro64/Ternary-Nemotron-3.5-Lightning-30B-A3B-GGUF** using
 native CUDA/CuPy kernels. NVIDIA created the base model, Nota AI produced the
 ternary checkpoint, and boro64 converted it to GGUF. **Only backend source is
 distributed; no model weights are included or automatically downloaded.**
-Lightning is a different model from Nemotron Bolt E4B.
+The external Nemotron Lightning model is distinct from Nemotron Bolt E4B.
 
 ## AI-assisted development and DevOps
 

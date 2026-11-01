@@ -1,4 +1,4 @@
-# Nemotron Lightning V6 on Quadro K6000
+# Lightning Backend V6 for NVIDIA Quadro K6000
 
 This extension runs the pinned Nota Nemotron 3.5 Lightning 30B-A3B ternary
 checkpoint with native CUDA kernels on Kepler sm_35. Model computation stays on

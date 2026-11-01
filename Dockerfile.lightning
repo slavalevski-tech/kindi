@@ -42,9 +42,9 @@ ENTRYPOINT ["python3", "-m", "kindi"]
 CMD ["serve"]
 
 FROM kindi_base
-LABEL org.opencontainers.image.title="Kindi 0.3.0 + Lightning backend V6 for K6000" \
+LABEL org.opencontainers.image.title="Lightning Backend V6 for NVIDIA Quadro K6000" \
       org.opencontainers.image.licenses="AGPL-3.0-only" \
-      org.opencontainers.image.description="Isolated native CUDA 10.2 / sm_35 Lightning adapter; model mounted separately"
+      org.opencontainers.image.description="Native Lightning inference backend for NVIDIA Quadro K6000 (CUDA 10.2 / sm_35); external model mounted separately"
 WORKDIR /opt/lightning
 COPY . /opt/lightning/
 ENV PYTHONPATH=/opt/lightning PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 \

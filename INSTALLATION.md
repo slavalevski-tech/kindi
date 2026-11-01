@@ -1,4 +1,4 @@
-# Install Lightning V6 on a Quadro K6000
+# Install Lightning Backend V6 on NVIDIA Quadro K6000
 
 This guide installs the independent [slavalevski-tech/kindi fork](https://github.com/slavalevski-tech/kindi),
 based on Kindi 0.3.0 by Amir Husain, as a separate native inference server.
