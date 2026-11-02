@@ -10,6 +10,8 @@ class BatchOps(object):
         self.dense_mode=os.environ.get('KINDI_LIGHTNING_DENSE_PREFILL','batched_mv')
         if self.expert_mode not in ('gemm','grouped_mv','grouped_mv4','cublas','tile8','tile16','tile24','tile32'):raise ValueError('unknown expert prefill mode')
         if self.dense_mode not in ('tiled','cublas','batched_mv','tile8','tile16','tile24','tile32'):raise ValueError('unknown dense prefill mode')
+        if self.ops.prefill_q2 in ('or_lb4','or_aos_lb4') and (self.expert_mode,self.dense_mode)!=('tile24','tile24'):
+            raise ValueError('OR prefill requires tile24 dense and expert modes')
         self.alpha=np.array(1,dtype=np.float32);self.beta=np.array(0,dtype=np.float32)
         self.handle=None
 
@@ -59,7 +61,8 @@ class BatchOps(object):
             jobs=(m+7)//8 if dispatch is None else dispatch['maxjobs']
             arrays=[self.null]*5 if dispatch is None else [dispatch[k] for k in ('order','expert','start','length','count')]
             row_tile=int(mode[4:])
-            self.k['q2_'+mode](((rows+row_tile-1)//row_tile,jobs),(256,),tuple([self.eng.w[name],x,out,np.int32(rows),np.int32(cols),np.int32(m),
+            kernel='v8_or24_lb4' if self.ops.prefill_q2 in ('or_lb4','or_aos_lb4') else 'q2_'+mode
+            self.k[kernel](((rows+row_tile-1)//row_tile,jobs),(256,),tuple([self.eng.w[name],x,out,np.int32(rows),np.int32(cols),np.int32(m),
                 np.int32(dispatch['topk'] if dispatch else 1),np.int32(per_assignment if dispatch else True)]+arrays))
             return out
         if dispatch is None and self.dense_mode=='batched_mv':

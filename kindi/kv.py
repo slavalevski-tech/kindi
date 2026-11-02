@@ -38,6 +38,8 @@ class KVCacheOps(object):
         self.gqa_shared_bytes=(self.gqa_stage*128+16*128)*4 if self.gqa_stage else 0
         self.split_workspace_bytes=int(os.environ.get('KINDI_LIGHTNING_ATTENTION_WORKSPACE_MB','128'))*1024**2
         if not 1024**2<=self.split_workspace_bytes<=512*1024**2:raise ValueError('attention workspace must be 1..512 MiB')
+        if self.ops.attention_kv_load in ('load2','load4') and (self.mode,self.read_mode,self.attention_mode,self.tile_strategy)!=('fp16','direct','split',GQA_VECTOR2):
+            raise ValueError('FP16 vector loads require direct split gqa16_vec2_32_bank4')
         self.error=self.cp.zeros(1,self.cp.int32)
         self.capacity=0;self.scratch=None;self.split_scratch=None
         self.bank_requests=ops.configure_attention_bank4() if self.tile_strategy==GQA_VECTOR2 else ()
@@ -73,6 +75,9 @@ class KVCacheOps(object):
 
     def attention(self,q,k,v,past,tokens,qheads,kvheads,dim):
         self.validate_storage(k,kvheads,dim);self.validate_storage(v,kvheads,dim)
+        alignment=8 if self.ops.attention_kv_load=='load4' else 4
+        if self.ops.attention_kv_load in ('load2','load4') and (k.data.ptr%alignment or v.data.ptr%alignment):
+            raise ValueError('FP16 '+self.ops.attention_kv_load+' requires'+str(alignment)+'-byte-aligned K and V')
         if min(tokens,qheads,kvheads,dim)<1 or dim>128 or qheads%kvheads or past<0 or past+tokens>min(k.shape[0],v.shape[0]):raise ValueError('invalid attention dimensions or range')
         if self.tile_strategy==GQA_VECTOR2 and max(k.shape[0],v.shape[0],past+tokens)>65536:
             raise ValueError('Vector2 bank4 requires context capacity <=65536')

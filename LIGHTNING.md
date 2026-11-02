@@ -1,5 +1,10 @@
 # Lightning Backend V6 for NVIDIA Quadro K6000
 
+> Historical V6 technical reference retained for provenance. For the current V10
+> profile, installation and saved speed measurements, see [README.md](README.md),
+> [CHANGES-V6-TO-V10.md](CHANGES-V6-TO-V10.md) and
+> [BENCHMARKS-LIGHTNING.md](BENCHMARKS-LIGHTNING.md).
+
 This extension runs the pinned Nota Nemotron 3.5 Lightning 30B-A3B ternary
 checkpoint with native CUDA kernels on Kepler sm_35. Model computation stays on
 the GPU. Tokenization, request-local sampling and bounded prefix caching use CPU.

@@ -188,7 +188,7 @@ def create_app(cfg,log=print):
     runtime=worker.submit(Runtime,cfg,log).result()
     from . import VERSION
     from .source_offer import SourceOfferMiddleware
-    app=FastAPI(title='Lightning Backend V6 for NVIDIA Quadro K6000',version=VERSION,
+    app=FastAPI(title='Lightning Backend V10 for NVIDIA Quadro K6000',version=VERSION,
         description='Modified Kindi by slavalevski-tech. Original Kindi copyright Amir Husain. '
                     'AGPL-3.0-only, without warranty. [Complete source and legal notices](/source).')
     app.add_middleware(SourceOfferMiddleware,root=os.path.dirname(os.path.dirname(__file__)))

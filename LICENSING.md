@@ -40,7 +40,7 @@ at the pinned Kindi commit. No separate approval requirement for an AGPL fork wa
 found in these documents. This is an implementation checklist, not a claim of
 endorsement or a legal certification.
 
-## V6 provenance and contribution agreement
+## V10 provenance and contribution agreement
 
 See PROVENANCE.md for the AI-assisted code/reference/license review and its
 limitations, including the dependency inventory. Known third-party licenses

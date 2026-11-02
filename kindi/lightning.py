@@ -97,7 +97,7 @@ class Engine(object):
         self.file.load_gpu(cp,reserve_bytes=self.memory['allocation_peak_with_reserve']-self.memory['weights_packed'])
         self.w=self.file.resident
         self.head_codes=None;self.head_scales=None
-        if self.head_layout=='split':self._prepare_split_head()
+        if self.head_layout in ('split','split_lane4'):self._prepare_split_head()
         self.states={};self.histories={};self.keys={};self.values={}
         for i,kind in enumerate(s.blocks):
             if kind=='mamba':
@@ -109,7 +109,7 @@ class Engine(object):
         self.position=0;self.last_logits=None;self.tokens=[];self.failed=False
         self.source_sha256=self.file.source_hash()
         properties=cp.cuda.runtime.getDeviceProperties(cp.cuda.Device().id)
-        self.numeric_profile={'kernels':self.ops.profile,'q2_input':self.q2_input,'q2_decode':self.q2_decode,'head_layout':self.head_layout,'dense_prefill':os.environ.get('KINDI_LIGHTNING_DENSE_PREFILL','batched_mv'),
+        self.numeric_profile={'kernels':self.ops.profile,'q2_input':self.q2_input,'q2_decode':self.q2_decode,'q2_prefill':self.ops.prefill_q2,'attention_kv_load':self.ops.attention_kv_load,'head_layout':self.head_layout,'dense_prefill':os.environ.get('KINDI_LIGHTNING_DENSE_PREFILL','batched_mv'),
             'expert_prefill':os.environ.get('KINDI_LIGHTNING_EXPERT_PREFILL','grouped_mv'),'state':'fp32','kv':self.kv_dtype,'kv_read':self.kv_read,'attention':self.kv.attention_mode,'attention_tile_strategy':self.kv.tile_strategy,'position':'nope',
             'dt':'softplus_no_extra_clamp','ssm_strategy':self.ssm_strategy,'state_version':self.state_version,'kernel_hash':self.ops.code_hash,
             'compute_capability':[properties['major'],properties['minor']],'cuda_runtime':cp.cuda.runtime.runtimeGetVersion()}
@@ -158,9 +158,11 @@ class Engine(object):
                 require(p+'attn_output.weight',(s.width,s.qheads*s.hd),42)
 
     def _validate_head_layout(self):
-        if self.head_layout not in ('native','split'):
-            raise ValueError('head layout must be native or split')
-        if self.head_layout=='split':
+        if self.head_layout=='split_lane4' and not 1<=self.ctx<=65536:
+            raise ValueError('K6000 lane4 research is limited to ctx<=65536')
+        if self.head_layout not in ('native','split','split_lane4'):
+            raise ValueError('head layout must be native, split or split_lane4')
+        if self.head_layout in ('split','split_lane4'):
             t=self.file.tensors['output.weight']
             if (os.environ.get('KINDI_LIGHTNING_KERNELS','optimized')!='optimized'
                     or (self.spec.vocab,self.spec.width)!=(131072,2688)
@@ -170,7 +172,7 @@ class Engine(object):
     def _prepare_split_head(self):
         # Startup only: the packed loader has returned, and no state/KV/workspace
         # is resident yet. self.w and file.resident are the SAME owner dictionary.
-        if (self.head_layout!='split' or hasattr(self,'states') or self.w is not self.file.resident
+        if (self.head_layout not in ('split','split_lane4') or hasattr(self,'states') or self.w is not self.file.resident
                 or self.head_codes is not None or self.head_scales is not None):
             raise RuntimeError('split head conversion is startup-only')
         cp=self.cp;packed=self.w['output.weight'];t=self.file.tensors['output.weight']
@@ -181,21 +183,44 @@ class Engine(object):
         free,total=cp.cuda.runtime.memGetInfo()
         if free<self.memory['head_split_bytes']+self.memory['reserve']:
             raise MemoryError('insufficient startup memory for split head conversion')
-        codes=cp.empty(t.shape,cp.int8);scales=cp.empty((t.shape[0],t.shape[1]//32),cp.float32)
-        self.ops.k['head_q8_split'](((t.elements+255)//256,),(256,),
-            (packed,codes,scales,np.int32(t.elements//32)))
+        if self.head_layout=='split_lane4':
+            if (packed.dtype!=cp.uint8 or not packed.flags.c_contiguous or packed.nbytes!=374341632
+                    or packed.data.ptr%2):raise ValueError('invalid native Q8 input for direct lane4 conversion')
+            codes=cp.empty((131072,21,32,4),cp.int8)
+            scales=cp.empty((131072,84),cp.float32)
+            if codes.data.ptr%4 or scales.data.ptr%16:raise ValueError('unaligned direct lane4 output')
+            self.ops.k['head_q8_lane4_split'](((t.elements//4+255)//256,),(256,),
+                (packed,codes,scales,np.int32(131072),np.int32(2688)))
+        else:
+            codes=cp.empty(t.shape,cp.int8);scales=cp.empty((t.shape[0],t.shape[1]//32),cp.float32)
+            self.ops.k['head_q8_split'](((t.elements+255)//256,),(256,),
+                (packed,codes,scales,np.int32(t.elements//32)))
         cp.cuda.get_current_stream().synchronize()
         self.head_codes=codes;self.head_scales=scales
+        packed_bytes=packed.nbytes
         del self.w['output.weight']
         del packed
-        # Return the retired 357MiB allocation to the driver BEFORE allocating KV.
-        # No packed output view is stored by Engine, PackedFile or CudaOps.
+        if self.head_layout=='split_lane4':
+            self.head_loader_diagnostics={'layout':'split_lane4','conversion':'direct_native_q8_0',
+                'native_packed_bytes':packed_bytes,'resident_codes_bytes':codes.nbytes,
+                'resident_scales_bytes':scales.nbytes,'resident_head_bytes':codes.nbytes+scales.nbytes,
+                'codes_shape':list(codes.shape),'scales_shape':list(scales.shape),
+                'old_split_codes_allocated':False,'packed_output_retired':True,
+                'packed_output_in_resident':'output.weight' in self.w,
+                'resident_dictionary_shared':self.w is self.file.resident,
+                'startup_conversion_synchronized':True,'input_workspace_bytes':10752,
+                'input_workspace_lifetime':'per_call_stream_ordered','input_workspace_persistent':False}
+
+        # Retire the native357MiB owner BEFORE allocating KV. An allocator may
+        # keep freed pool capacity for reuse; no packed output view is retained
+        # by Engine, PackedFile or CudaOps.
         cp.get_default_memory_pool().free_all_blocks()
 
     def memory_plan(self,ctx):
         s=self.spec
         packed_weights=sum(t.nbytes for t in self.file.tensors.values())
-        split=getattr(self,'head_layout','native')=='split'
+        split=getattr(self,'head_layout','native') in ('split','split_lane4')
+        head_input=10752 if getattr(self,'head_layout','native')=='split_lane4' else 0
         head_packed=self.file.tensors['output.weight'].nbytes if split else 0
         head_split=131072*2688+131072*84*4 if split else 0
         weights=packed_weights-head_packed+head_split
@@ -210,13 +235,14 @@ class Engine(object):
         # parameter buffer holds delta and decay, never a copy per layer.
         ssm_scratch=2*min(ctx,256)*s.heads*4 if getattr(self,'ssm_strategy','legacy') in ('auto','precomputed') else 0
         reserve=512*1024**2
-        steady=weights+state+kv+scratch+attention_scratch+ssm_scratch+reserve
+        steady=weights+state+kv+scratch+attention_scratch+ssm_scratch+head_input+reserve
         startup=packed_weights+head_split+reserve
         plan={'weights':weights,'weights_packed':packed_weights,'head_packed_retired_bytes':head_packed,
             'head_split_bytes':head_split,'head_steady_extra_bytes':head_split-head_packed,
             'head_startup_transient_bytes':head_split,'startup_with_reserve':startup,
             'allocation_peak_with_reserve':max(steady,startup),'state':state,'kv':kv,'kv_scratch':scratch,
             'attention_scratch':attention_scratch,'ssm_scratch':ssm_scratch,'reserve':reserve,'total_with_reserve':steady}
+        if head_input:plan['head_input_workspace_bytes']=head_input
         if hasattr(self,'kv') and self.kv.gqa_stage:
             # Static per-CTA shared memory is resident on an SM, not global VRAM.
             plan['attention_static_shared_per_block']=self.kv.gqa_shared_bytes
@@ -226,8 +252,10 @@ class Engine(object):
     def linear(self,name,x,ids=None,per_input=False):
         t=self.file.tensors[name]
         n=t.shape[-2];k=t.shape[-1]
-        if name=='output.weight' and getattr(self,'head_layout','native')=='split':
+        if name=='output.weight' and getattr(self,'head_layout','native') in ('split','split_lane4'):
             if ids is not None or per_input:raise ValueError('split head requires one unselected input row')
+            if self.head_layout=='split_lane4':
+                return self.ops.split_head_lane4_linear(self.head_codes,self.head_scales,x)
             return self.ops.split_head_linear(self.head_codes,self.head_scales,x)
         selected=int(ids.size) if ids is not None else 1
         return self.ops.linear(self.w[name],x,n,k,t.kind,ids,selected,per_input,decode=True)

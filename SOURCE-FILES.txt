@@ -3,10 +3,12 @@
 .gitattributes
 .gitignore
 ATTENTION-SUB8-ATTRIBUTION.txt
+BENCHMARKS-LIGHTNING.json
 BENCHMARKS-LIGHTNING.md
 BUILD.md
 CHANGELOG.md
 CHANGES-V3-TO-V6.md
+CHANGES-V6-TO-V10.md
 COMMERCIAL-LICENSE.md
 Dockerfile.lightning
 INSTALLATION.md
@@ -21,6 +23,7 @@ PROVENANCE.md
 README.md
 SOURCE-FILES.txt
 UPSTREAM-README.md
+VALIDATION-LIGHTNING.json
 VALIDATION.md
 WHY.md
 assets/kindi-banner.svg
@@ -76,11 +79,15 @@ kindi/kv.py
 kindi/layout.py
 kindi/lightning.cu
 kindi/lightning.py
+kindi/lightning_attention_load2.cu
+kindi/lightning_attention_load4.cu
 kindi/lightning_batch.cu
 kindi/lightning_batch.py
 kindi/lightning_cli.py
 kindi/lightning_kv.cu
 kindi/lightning_kv_reference.json
+kindi/lightning_prefill.cu
+kindi/lightning_prefill_aos.cu
 kindi/lightning_reference-fp16.npz
 kindi/lightning_reference-q8_0.npz
 kindi/lightning_reference.npz
@@ -108,6 +115,7 @@ kindi/tcf.cu
 kindi/tokenizer.py
 kindi/tp.py
 kindi/verify.py
+licenses/Lightning-V10-source-provenance.json
 licenses/Lightning-V6-source-provenance.json
 licenses/Nemotron-OpenMDW-1.1.txt
 lightning.conf.example

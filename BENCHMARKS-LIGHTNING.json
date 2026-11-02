@@ -1,0 +1,76 @@
+{
+  "measurement_date": "2026-11-02",
+  "software": "Kindi 0.3.0 + custom Lightning Backend V10",
+  "model": "Ternary-Nemotron-3.5-Lightning-30B-A3B (boro64)",
+  "GPU": "NVIDIA Quadro K6000 12 GB \u2014 owner-overclocked board",
+  "CUDA": "10.2",
+  "driver": "470.256.02",
+  "KV": "FP16 direct",
+  "Mamba_state": "FP32",
+  "context_capacity": 65536,
+  "prefill_chunk": 256,
+  "output_tokens_each": 256,
+  "observations_each": 1,
+  "board_reported_max_graphics_MHz": 993,
+  "board_reported_max_memory_MHz": 3350,
+  "board_power_limit_W": 250,
+  "clock_disclosure": "Max frequencies/power limit read after measurements; per-row locked-clock telemetry was not recorded. These are this particular board settings, not stock-card results or measured power consumption.",
+  "clock_snapshot_UTC": "2026-11-02T16:26:42.270233+00:00",
+  "rows": [
+    {
+      "input_tokens": 1000,
+      "prefill_seconds": 8.48493433999829,
+      "prefill_tps": 117.85595031489679,
+      "generation_tokens": 256,
+      "generation_seconds": 7.0163053309952375,
+      "generation_tps": 36.48643950386454
+    },
+    {
+      "input_tokens": 4000,
+      "prefill_seconds": 35.02848033400369,
+      "prefill_tps": 114.19279288907728,
+      "generation_tokens": 256,
+      "generation_seconds": 7.256423588987673,
+      "generation_tps": 35.27908712337368
+    },
+    {
+      "input_tokens": 8000,
+      "prefill_seconds": 73.39960954198614,
+      "prefill_tps": 108.99240540814907,
+      "generation_tokens": 256,
+      "generation_seconds": 7.537274000002071,
+      "generation_tps": 33.964534127315744
+    },
+    {
+      "input_tokens": 16000,
+      "prefill_seconds": 160.30467715099803,
+      "prefill_tps": 99.80993870146968,
+      "generation_tokens": 256,
+      "generation_seconds": 8.04023496399168,
+      "generation_tps": 31.83986551966455
+    },
+    {
+      "input_tokens": 64000,
+      "prefill_seconds": 973.3334252839559,
+      "prefill_tps": 65.7534184458208,
+      "generation_tokens": 256,
+      "generation_seconds": 11.258420224010479,
+      "generation_tps": 22.738536571413178
+    }
+  ],
+  "timing": {
+    "prefill": "synchronized Engine wall including allocations/dispatch/chunk sync/head/progress writes; load/reset/common warmup excluded",
+    "generation": "256 fixed GPU-argmax/D2H/forward greedy steps, EOS ignored",
+    "warmup": "Excluded1000+64 warmup per Engine invocation; two invocations, four short cases then the unstarted64K case. No measured case repeated.",
+    "prefix_reuse": false,
+    "64K": "Separate Engine invocation/session; one measured observation, same source/image/profile"
+  },
+  "scope": "Saved accepted development V10 image; not a fresh benchmark of the public packaging. No median/spread, statistical-significance, stock-card or V6-to-V10 speedup claim.",
+  "source_artifact_sha256": {
+    "v10-speed5-evidence/report.json": "45c55560014427c2f46c82b340adfc88e897fdce72a584fe3b8b3b4b2d469f09",
+    "v10-speed5-session.json": "88d410ffacc7405a21c7bc7b66e239f544ab851438603ebed48aa4ff4168e245",
+    "v10-speed5-64k-evidence/report.json": "295b28a2073036380852a84f786ab7e62028fd22ee79d31d292205a686bc7e5c",
+    "v10-speed5-64k-session.json": "48bbee20ed2b43abe9d30d4b813e49372d7aadedd320226628b086de5c111501",
+    "v10-speed5-64k-manual-admission.json": "38e97b108f3731452f4dd2ceb7428ba02fc32695b475bd0980b579e25b43c41a"
+  }
+}

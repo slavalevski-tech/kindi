@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.lightning
-    image: kindi-lightning:v6-publication
+    image: kindi-lightning:v10-publication
     ports:
       - "127.0.0.1:${LIGHTNING_PORT:-18095}:8093"
     environment:
@@ -12,10 +12,12 @@ services:
       KINDI_LIGHTNING_EXPERT_PREFILL: "tile24"
       KINDI_LIGHTNING_ATTENTION: "split"
       KINDI_LIGHTNING_PREFILL_CHUNK: "256"
+      KINDI_LIGHTNING_PREFILL_Q2: "or_aos_lb4"
+      KINDI_LIGHTNING_ATTENTION_KV_LOAD: "load4"
       KINDI_LIGHTNING_Q2_INPUT: "vec4"
       KINDI_LIGHTNING_Q2_DECODE: "or"
       KINDI_LIGHTNING_SSM_STRATEGY: "auto"
-      KINDI_LIGHTNING_HEAD_LAYOUT: "split"
+      KINDI_LIGHTNING_HEAD_LAYOUT: "split_lane4"
       KINDI_LIGHTNING_KV_READ: "direct"
       KINDI_LIGHTNING_ATTENTION_TILE_STRATEGY: "gqa16_vec2_32_bank4"
       KINDI_LIGHTNING_ATTENTION_WORKSPACE_MB: "512"

@@ -20,10 +20,28 @@ class CudaOps(object):
             raise ValueError('SSM strategy must be legacy, shared, precomputed or auto')
         if self.ssm_strategy!='legacy' and self.profile!='optimized':
             raise ValueError('Kepler SSM strategies require optimized Lightning kernels')
+        self.prefill_q2=os.environ.get('KINDI_LIGHTNING_PREFILL_Q2','native')
+        if self.prefill_q2 not in ('native','or_lb4','or_aos_lb4'):
+            raise ValueError('Q2 prefill must be native, or_lb4 or or_aos_lb4')
+        if self.prefill_q2!='native' and self.profile!='optimized':
+            raise ValueError('OR prefill requires optimized Lightning kernels')
+        self.attention_kv_load=os.environ.get('KINDI_LIGHTNING_ATTENTION_KV_LOAD','scalar')
+        if self.attention_kv_load not in ('scalar','load2','load4'):
+            raise ValueError('Attention KV load must be scalar, load2 or load4')
+        if self.attention_kv_load in ('load2','load4') and self.profile!='optimized':
+            raise ValueError('FP16 vector loads require optimized Lightning kernels')
         self.ssm_parameters_scratch=None
         code = open(os.path.join(os.path.dirname(__file__), 'lightning.cu'), encoding='utf-8').read()
         code += '\n'+open(os.path.join(os.path.dirname(__file__),'lightning_batch.cu'),encoding='utf-8').read()
         code += '\n'+open(os.path.join(os.path.dirname(__file__),'lightning_kv.cu'),encoding='utf-8').read()
+        if self.prefill_q2 in ('or_lb4','or_aos_lb4'):
+            code+='\n'+open(os.path.join(os.path.dirname(__file__),'lightning_prefill.cu'),encoding='utf-8').read()
+        if self.prefill_q2=='or_aos_lb4':
+            code+='\n'+open(os.path.join(os.path.dirname(__file__),'lightning_prefill_aos.cu'),encoding='utf-8').read()
+        if self.attention_kv_load=='load2':
+            code+='\n'+open(os.path.join(os.path.dirname(__file__),'lightning_attention_load2.cu'),encoding='utf-8').read()
+        if self.attention_kv_load=='load4':
+            code+='\n'+open(os.path.join(os.path.dirname(__file__),'lightning_attention_load4.cu'),encoding='utf-8').read()
         self.code_hash=hashlib.sha256(code.encode('utf-8')).hexdigest()
         self.module = cp.RawModule(code=code, options=('--std=c++11',))
         self.k = {name:self.module.get_function(name) for name in (
@@ -40,7 +58,16 @@ class CudaOps(object):
             'attention_tiles_fp32_gqa16_typed64','attention_tiles_fp16_gqa16_typed64','attention_tiles_q8_gqa16_typed64',
             'attention_tiles_fp16_gqa16_vector2_typed32',
             'v5_ssm_step_shared','v5_ssm_step_precomputed','v5_ssm_parameters',
-            'v5_ssm_chunk_shared','v5_ssm_chunk_precomputed')}
+            'v5_ssm_chunk_shared','v5_ssm_chunk_precomputed',
+            'head_q8_lane4_split','pack_head_x4','head_lane4')}
+        if self.prefill_q2=='or_lb4':
+            self.k['v8_or24_lb4']=self.module.get_function('v8_or24_lb4')
+        if self.prefill_q2=='or_aos_lb4':
+            self.k['v8_or24_lb4']=self.module.get_function('v9_aos_vector_lb4')
+        if self.attention_kv_load=='load2':
+            self.k['attention_tiles_fp16_gqa16_vector2_typed32']=self.module.get_function('attention_tiles_fp16_gqa16_vector2_load2_r1')
+        if self.attention_kv_load=='load4':
+            self.k['attention_tiles_fp16_gqa16_vector2_typed32']=self.module.get_function('v8_attention_stage4')
         self.null = np.uint64(0)
 
     def configure_attention_bank4(self):
@@ -71,6 +98,26 @@ class CudaOps(object):
         self.k['head_q8_split_mv']((32768,),(128,),
             (codes,scales,x,y,np.int32(131072),np.int32(2688)))
         return y
+
+    def split_head_lane4_linear(self,codes,scales,x):
+        cp=self.cp
+        if (self.profile!='optimized' or not isinstance(codes,cp.ndarray) or codes.dtype!=cp.int8
+                or codes.shape!=(131072,21,32,4) or not codes.flags.c_contiguous or codes.data.ptr%4
+                or not isinstance(scales,cp.ndarray) or scales.dtype!=cp.float32
+                or scales.shape!=(131072,84) or not scales.flags.c_contiguous or scales.data.ptr%16
+                or not isinstance(x,cp.ndarray) or x.dtype!=cp.float32
+                or not x.flags.c_contiguous or x.size!=2688 or x.data.ptr%4):
+            raise ValueError('lane4 head requires its fixed contiguous Q8 layout and one FP32 input')
+        # Local stream-ordered temporaries, like other R2 intermediates. No
+        # mutable input pack is shared between calls, threads or streams.
+        xpack=cp.empty((21,32,4),cp.float32)
+        y=cp.empty(131072,cp.float32)
+        if xpack.data.ptr%16 or y.data.ptr%4:raise ValueError('unaligned lane4 temporary')
+        self.k['pack_head_x4']((3,),(256,),(x,xpack,np.int32(2688)))
+        self.k['head_lane4']((32768,),(128,),
+            (codes,scales,xpack,y,np.int32(131072),np.int32(2688)))
+        return y
+
 
     def ssm_parameters(self,dt,dtbias,a,tokens,heads,stride):
         count=2*tokens*heads

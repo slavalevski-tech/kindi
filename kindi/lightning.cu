@@ -240,3 +240,59 @@ extern "C" __global__ void head_q8_split_mv(const signed char* codes,const float
     }
     sum=warp_sum(sum);if(lane==0)y[row]=sum;
 }
+
+
+// Opt-in split_lane4: direct native Q8_0 loader. Existing kernel bodies
+// remain byte-identical. Each thread writes one char4 and lane0 four scales.
+extern "C" __global__ void head_q8_lane4_split(const unsigned char* packed,char4* codes4,
+    float* scales,int rows,int cols) {
+    if(rows<=0 || cols<=0 || cols%128)return;
+    size_t index=(size_t)blockIdx.x*blockDim.x+threadIdx.x;
+    size_t count=(size_t)rows*(cols/4);if(index>=count)return;
+    int lane=index%32,groups=cols/128;
+    size_t group=index/32,row=group/groups;int g=group%groups;
+    size_t block=(row*groups+g)*4;const unsigned char* b=packed+block*34;
+    char4 q;
+    q.x=__ldg(reinterpret_cast<const signed char*>(b+2)+lane);
+    q.y=__ldg(reinterpret_cast<const signed char*>(b+34+2)+lane);
+    q.z=__ldg(reinterpret_cast<const signed char*>(b+68+2)+lane);
+    q.w=__ldg(reinterpret_cast<const signed char*>(b+102+2)+lane);
+    codes4[index]=q;
+    if(lane==0) {
+        float4 d;
+        d.x=__half2float(__ushort_as_half(__ldg(reinterpret_cast<const unsigned short*>(b))));
+        d.y=__half2float(__ushort_as_half(__ldg(reinterpret_cast<const unsigned short*>(b+34))));
+        d.z=__half2float(__ushort_as_half(__ldg(reinterpret_cast<const unsigned short*>(b+68))));
+        d.w=__half2float(__ushort_as_half(__ldg(reinterpret_cast<const unsigned short*>(b+102))));
+        reinterpret_cast<float4*>(scales)[row*groups+g]=d;
+    }
+}
+
+// These three function texts are copied verbatim from reviewed8fb35bb... .
+__device__ __forceinline__ float hp_warp_sum(float value) {
+    for(int shift=16;shift;shift>>=1)value+=__shfl_down_sync(0xffffffffu,value,shift);
+    return value;
+}
+extern "C" __global__ void pack_head_x4(const float* x,float4* out,int cols) {
+    if(cols<=0 || cols%128)return;
+    int index=blockIdx.x*blockDim.x+threadIdx.x;if(index>=cols/4)return;
+    int lane=index%32,g=index/32,c=g*128+lane;
+    float4 value;value.x=__ldg(x+c);value.y=__ldg(x+c+32);
+    value.z=__ldg(x+c+64);value.w=__ldg(x+c+96);out[index]=value;
+}
+extern "C" __global__ void head_lane4(const char4* codes4,const float* scales,const float4* x4,
+    float* y,int rows,int cols) {
+    if(blockDim.x!=128 || rows<=0 || cols<=0 || cols%128)return;
+    int lane=threadIdx.x&31,row=blockIdx.x*4+(threadIdx.x>>5);if(row>=rows)return;
+    int groups=cols/128;const float4* sr=reinterpret_cast<const float4*>(scales+(size_t)row*(cols/32));
+    float sum=0;
+    for(int g=0;g<groups;g++) {
+        char4 q=__ldg(codes4+((size_t)row*groups+g)*32+lane);
+        float4 d=__ldg(sr+g),value=__ldg(x4+g*32+lane);
+        sum=fmaf(d.x*(float)q.x,value.x,sum);
+        sum=fmaf(d.y*(float)q.y,value.y,sum);
+        sum=fmaf(d.z*(float)q.z,value.z,sum);
+        sum=fmaf(d.w*(float)q.w,value.w,sum);
+    }
+    sum=hp_warp_sum(sum);if(lane==0)y[row]=sum;
+}

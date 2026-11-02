@@ -1,11 +1,17 @@
-Lightning Backend V6 for NVIDIA Quadro K6000 — notices
+Lightning Backend V10 for NVIDIA Quadro K6000 — notices
 
-Lightning Backend V6 is the fork-specific Quadro K6000 inference backend for
+V10 additions (2026-11-02): exact lane4 output head, Q2 OR/AoS prefill and
+FP16 vector-load attention derive from the fork's recorded native implementations.
+NVIDIA CUDA 10.2 Kepler tuning and best-practices guides were consulted for
+architecture/API concepts; no SDK headers or samples are vendored in this update.
+The public source/license offer is retained. All third-party notices below apply.
+
+Lightning Backend V10 is the fork-specific Quadro K6000 inference backend for
 Kindi 0.3.0. V6 identifies the backend implementation, not a model version.
 
 Original Kindi: Copyright (c) 2026 Amir Husain.
 https://github.com/ahtx/kindi
-Modified fork maintained by slavalevski-tech; modifications dated 2026-10-30 through 2026-11-01.
+Modified fork maintained by slavalevski-tech; modifications dated 2026-10-30 through 2026-11-02.
 This fork's program code is licensed under AGPL-3.0-only; see LICENSE and
 MODIFICATIONS.md. No warranty is provided. This fork is not an official
 release or endorsement by Amir Husain, NVIDIA, Nota AI or boro64.

@@ -1,0 +1,419 @@
+{
+  "version": "Lightning Backend V10 for NVIDIA Quadro K6000",
+  "modified": "2026-11-02",
+  "public_base_commit": "a6604b7c99d8ef703b26faba7eef76fa19e1b0b2",
+  "accepted_CUDA_assembly_sha256": "f79d9a537bf8c8b6992ae974afa5a0105c4aa1b27a3774308fcef132f6fb4390",
+  "development_source_files": [
+    {
+      "path": "kindi/__init__.py",
+      "accepted_development_sha256": "0158f26c42b1dc49bd61d92e17681eeb65a9ecaec0b01dc27f507f142d3175e5",
+      "public_sha256": "d9736a49e686902573fc146eecdc2bff4a80cef3c46e0dc6e0723685877125a0",
+      "equal_after_line_ending_normalization": false,
+      "publication_only_difference": true
+    },
+    {
+      "path": "kindi/__main__.py",
+      "accepted_development_sha256": "d720d0f6bab89c0b64c7e42e7a4ac4bafb5d358cfb595b172794f563ebd23f28",
+      "public_sha256": "d720d0f6bab89c0b64c7e42e7a4ac4bafb5d358cfb595b172794f563ebd23f28",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/bench.py",
+      "accepted_development_sha256": "348ad7d14cc668833082d831767c608c102af9e465c4bccba5c67d858bdd7899",
+      "public_sha256": "348ad7d14cc668833082d831767c608c102af9e465c4bccba5c67d858bdd7899",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/cache.py",
+      "accepted_development_sha256": "3f4f603f0c8130a3728950b2e908d5aecd34d2b5adc005c6982bb6eae886b61f",
+      "public_sha256": "3f4f603f0c8130a3728950b2e908d5aecd34d2b5adc005c6982bb6eae886b61f",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/catalog.py",
+      "accepted_development_sha256": "b032833440367aa3b20cb51f4b7a3b80cc6352ec8fbcd29904537ad5d1c72f2f",
+      "public_sha256": "b032833440367aa3b20cb51f4b7a3b80cc6352ec8fbcd29904537ad5d1c72f2f",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/chat.py",
+      "accepted_development_sha256": "468a8176d747ed239c17f866e942711aa489380347cde660e06883a8678bce64",
+      "public_sha256": "468a8176d747ed239c17f866e942711aa489380347cde660e06883a8678bce64",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/chunk.cu",
+      "accepted_development_sha256": "09d97eaa005ba9327f61320e595850367aa778026954980e894e4eb2ab04f9d2",
+      "public_sha256": "09d97eaa005ba9327f61320e595850367aa778026954980e894e4eb2ab04f9d2",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/chunk.py",
+      "accepted_development_sha256": "bdf2c59a42ac0f2968be354455e2cc64e430139b617332534438f03c826d7bd0",
+      "public_sha256": "bdf2c59a42ac0f2968be354455e2cc64e430139b617332534438f03c826d7bd0",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/chunk1.cu",
+      "accepted_development_sha256": "7a5cb309668a0a3ddbe420571e5d8cf0e5ef4491ea54abbb88da5a1cc57f73cd",
+      "public_sha256": "7a5cb309668a0a3ddbe420571e5d8cf0e5ef4491ea54abbb88da5a1cc57f73cd",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/chunk1.py",
+      "accepted_development_sha256": "189b0c73e051db77277fdc1bb1dd55132ffb296e5747123519bcf96a88fa3b7a",
+      "public_sha256": "189b0c73e051db77277fdc1bb1dd55132ffb296e5747123519bcf96a88fa3b7a",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/cluster.py",
+      "accepted_development_sha256": "acc418a8a585015106d045597afd33cb8659f740916372844a9d2b952a8985a1",
+      "public_sha256": "acc418a8a585015106d045597afd33cb8659f740916372844a9d2b952a8985a1",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/config.py",
+      "accepted_development_sha256": "b81036cc4c36ecfc837c61307e9a4afe09280228e35f809de0c6fa8f3f0c5132",
+      "public_sha256": "b81036cc4c36ecfc837c61307e9a4afe09280228e35f809de0c6fa8f3f0c5132",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/convert.py",
+      "accepted_development_sha256": "709d6b7d1df2010d299b0656527da9c13c5ba5a9d1dcf5a3147608e9adb8e09e",
+      "public_sha256": "709d6b7d1df2010d299b0656527da9c13c5ba5a9d1dcf5a3147608e9adb8e09e",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/cpu.py",
+      "accepted_development_sha256": "53a7ed49fed8c73433f951c08e06461cf56bf33a6fbe0c495014ca9f73460e16",
+      "public_sha256": "53a7ed49fed8c73433f951c08e06461cf56bf33a6fbe0c495014ca9f73460e16",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/engine.py",
+      "accepted_development_sha256": "2307f5a5e6a67a4d80a450a4c183bb5123fae9f14c5363390586a9f6a72c9fde",
+      "public_sha256": "2307f5a5e6a67a4d80a450a4c183bb5123fae9f14c5363390586a9f6a72c9fde",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/gemma4.cu",
+      "accepted_development_sha256": "a880ed3d8048cb870f637ff00181ce6fb79090226c3e66b181a6297e8ad32f09",
+      "public_sha256": "a880ed3d8048cb870f637ff00181ce6fb79090226c3e66b181a6297e8ad32f09",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/gemma4.py",
+      "accepted_development_sha256": "ef75b94f745ffe463863bdc7b96d52f590481fdd1ecb8a975bdf2cb3d1b45a22",
+      "public_sha256": "ef75b94f745ffe463863bdc7b96d52f590481fdd1ecb8a975bdf2cb3d1b45a22",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/gemma4_cache.py",
+      "accepted_development_sha256": "22e8f6d2a760c66bb3cb4ad092c26c19889ea168f86e3b260b7f3c93283932f1",
+      "public_sha256": "22e8f6d2a760c66bb3cb4ad092c26c19889ea168f86e3b260b7f3c93283932f1",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/gemma4_chat.py",
+      "accepted_development_sha256": "d810864b47ca686ac20f7fa6e030a0d750451141ef7ec76f9682d2bdfe482236",
+      "public_sha256": "d810864b47ca686ac20f7fa6e030a0d750451141ef7ec76f9682d2bdfe482236",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/gemma4_tc.cu",
+      "accepted_development_sha256": "a4b8904e62536d1beb4a9bd87b0816830c5caf11b20b0a05a3b6d1e390deb767",
+      "public_sha256": "a4b8904e62536d1beb4a9bd87b0816830c5caf11b20b0a05a3b6d1e390deb767",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/gemma4_tokenizer.py",
+      "accepted_development_sha256": "c1b574865c925085858b4ed7b0a48597df3b047ba93e190cb98453ac90db4e3e",
+      "public_sha256": "c1b574865c925085858b4ed7b0a48597df3b047ba93e190cb98453ac90db4e3e",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/gemma4_tools.py",
+      "accepted_development_sha256": "4e9dc79d0565e6fab45cfb091a5f9bc7258b7b76244c9df3f787a21784da01f6",
+      "public_sha256": "4e9dc79d0565e6fab45cfb091a5f9bc7258b7b76244c9df3f787a21784da01f6",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/gemma4_tp.py",
+      "accepted_development_sha256": "799ad46129130179aeee5dfdeffb82c8a12e26bde49df02de25c20c96b794dc0",
+      "public_sha256": "799ad46129130179aeee5dfdeffb82c8a12e26bde49df02de25c20c96b794dc0",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/gguf.py",
+      "accepted_development_sha256": "c97b4a96d15e9101922036d60ecaf3929c6c85faeb3c213363236fbc4465d72f",
+      "public_sha256": "c97b4a96d15e9101922036d60ecaf3929c6c85faeb3c213363236fbc4465d72f",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/gpudrv.py",
+      "accepted_development_sha256": "7007766d5a9b5bc638d6af585a7019279f49bf587055527ac583595815e8bd5b",
+      "public_sha256": "7007766d5a9b5bc638d6af585a7019279f49bf587055527ac583595815e8bd5b",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/hostram.py",
+      "accepted_development_sha256": "1bc90b603f40c750a51f8938f524f224877dff85b8c77d64eb0e68046e4ef558",
+      "public_sha256": "1bc90b603f40c750a51f8938f524f224877dff85b8c77d64eb0e68046e4ef558",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/kcpu.c",
+      "accepted_development_sha256": "181a3a45916ec7ac271ee4f6e0a10e0dbfd512084038cf8035f1f14f2967ad25",
+      "public_sha256": "a216d5bad58af066e3c920f899cc5c196003b7a7a966f109d92dee71183c4c12",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/kindi.cu",
+      "accepted_development_sha256": "361f972c66aefebb8489dce3207a285df4434102987a1b8d0263bd64c9847680",
+      "public_sha256": "361f972c66aefebb8489dce3207a285df4434102987a1b8d0263bd64c9847680",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/kv.py",
+      "accepted_development_sha256": "2b8456cad883a5d81800f86ec3fcca3bebb35f600d016cb7de2d0911f0645bf4",
+      "public_sha256": "b310818493aba1b96441ae25f14e539529ca91f999def391339d491c41cbd45d",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/layout.py",
+      "accepted_development_sha256": "ed8216ba4cf8da7bd45963706683eacd7a4cccba77825a30550e3ca2a92851ef",
+      "public_sha256": "ed8216ba4cf8da7bd45963706683eacd7a4cccba77825a30550e3ca2a92851ef",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/lightning.cu",
+      "accepted_development_sha256": "e7e5009b0e5ded7acafd55b78607ef704e3366a240d1b55b28d7044881c0ef55",
+      "public_sha256": "e7e5009b0e5ded7acafd55b78607ef704e3366a240d1b55b28d7044881c0ef55",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/lightning.py",
+      "accepted_development_sha256": "76d4b8270a6acd3c6565a67381c3b38d5079868f886a8d29c5dc2ef59c97eb60",
+      "public_sha256": "76d4b8270a6acd3c6565a67381c3b38d5079868f886a8d29c5dc2ef59c97eb60",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/lightning_attention_load2.cu",
+      "accepted_development_sha256": "46d7dbdaff4d562995f4f72bccfcdcec344f3c67b6040229069a3617e9976299",
+      "public_sha256": "46d7dbdaff4d562995f4f72bccfcdcec344f3c67b6040229069a3617e9976299",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/lightning_attention_load4.cu",
+      "accepted_development_sha256": "61b259b2c9480bd6be93fcad94bf9dde798263f4529114941b9e92848add25f3",
+      "public_sha256": "7c2f887a82fff8209eadf1a8bf3b09705c531ba72e27cd4f31edc490a4b7fb69",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/lightning_batch.cu",
+      "accepted_development_sha256": "ea36b4d4d58bf6a2cf1e4d1a177259ee6799f3a87e77877e2afbe7fcd6e73797",
+      "public_sha256": "ea36b4d4d58bf6a2cf1e4d1a177259ee6799f3a87e77877e2afbe7fcd6e73797",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/lightning_batch.py",
+      "accepted_development_sha256": "230999b0c1de44be3bc9ba8c3675651a8c0f146c2369db98161e9682be16105f",
+      "public_sha256": "c4e68f563fcb4733c1a53b9821c5641f101f9eae43c5f197bdfe43f97a0eb26f",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/lightning_cli.py",
+      "accepted_development_sha256": "702485ab04963ebfd4d529dec946f43f6e8c6fc40bc2f7bbd88bc005bde536fe",
+      "public_sha256": "c15ba6de6ebef084e9df3b4f0747fb5afba39c71db32e26f723dc31da24de58d",
+      "equal_after_line_ending_normalization": false,
+      "publication_only_difference": true
+    },
+    {
+      "path": "kindi/lightning_kv.cu",
+      "accepted_development_sha256": "e36a3428aac6a79c89ddd79b04941ec6e0b9cf16af1f7fbe6c1fc9718a23a5d8",
+      "public_sha256": "e36a3428aac6a79c89ddd79b04941ec6e0b9cf16af1f7fbe6c1fc9718a23a5d8",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/lightning_prefill.cu",
+      "accepted_development_sha256": "8d071e590cac64025407bab2fca58b24e325b1d457ec105f1d530c8fe3ca3fac",
+      "public_sha256": "ae441695c36cb44e4d7931b6e240f43a628c846701543567d81841d4e3416ab4",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/lightning_prefill_aos.cu",
+      "accepted_development_sha256": "294de49eccf10ed271a1096e8b27609c17c37df3770a12c8dea9edfffe9d358f",
+      "public_sha256": "6c8f210b8a255809241ba173b56f146f75f2e45b6a8da6b5d76f36b4f4aa1ee7",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/lightning_server.py",
+      "accepted_development_sha256": "6e96cc7c964bb3482461fbdc636e55a85c5d546e86a4bde4e478aafd7795e85c",
+      "public_sha256": "f6c3e8f616318119996ee96839172c71d98026bdccb504ace36c2d06c0407740",
+      "equal_after_line_ending_normalization": false,
+      "publication_only_difference": true
+    },
+    {
+      "path": "kindi/lightning_tokenizer.py",
+      "accepted_development_sha256": "31323b9daa7e29a7e46a6f864a98176a51e978a6e5b803f38b73b95de6771640",
+      "public_sha256": "31323b9daa7e29a7e46a6f864a98176a51e978a6e5b803f38b73b95de6771640",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/moe.py",
+      "accepted_development_sha256": "a6a04fb8b53243454ed61d743b90b5883b045115bebcbe32e0a5ce3d375ab66c",
+      "public_sha256": "95ba5b367fea6ceac24bf404cf470a6002d777297c449d0bb7e999b413d6241f",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/packed.py",
+      "accepted_development_sha256": "27f530c52eec7a089aa6bdafd83327d74a7d46bc7e11e0611c0be29e32ac6980",
+      "public_sha256": "27f530c52eec7a089aa6bdafd83327d74a7d46bc7e11e0611c0be29e32ac6980",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/prefix_cache.py",
+      "accepted_development_sha256": "6ad04b04f68035b6e9b3b920a1db48ec83a4861911d31151cfb32bd506440d35",
+      "public_sha256": "6ad04b04f68035b6e9b3b920a1db48ec83a4861911d31151cfb32bd506440d35",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/sampling.py",
+      "accepted_development_sha256": "6983b31ceee94df5a178d04d6baebe72c5e47266cc27a918db26ee7ba7c5024f",
+      "public_sha256": "6983b31ceee94df5a178d04d6baebe72c5e47266cc27a918db26ee7ba7c5024f",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/sched.py",
+      "accepted_development_sha256": "9bfb28abee394baf2824bc0f54ac4b02d61e84cbbe2c4177fcf50a7702cbbda9",
+      "public_sha256": "9bfb28abee394baf2824bc0f54ac4b02d61e84cbbe2c4177fcf50a7702cbbda9",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/server.py",
+      "accepted_development_sha256": "126b90c227b31e9cce8b26ce2cfbc5b0259edb0df4dc9d766b4f5c124cfb1ce0",
+      "public_sha256": "126b90c227b31e9cce8b26ce2cfbc5b0259edb0df4dc9d766b4f5c124cfb1ce0",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/spec.cu",
+      "accepted_development_sha256": "8ca0dc84575ee9a830b37f0fab0ec821c35fa7eea297378578143abeac196011",
+      "public_sha256": "8ca0dc84575ee9a830b37f0fab0ec821c35fa7eea297378578143abeac196011",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/spec.py",
+      "accepted_development_sha256": "332fa9e9ceee4403909fa66fc9f9b048c2d64f34704c71f23ffa10c168e58c89",
+      "public_sha256": "332fa9e9ceee4403909fa66fc9f9b048c2d64f34704c71f23ffa10c168e58c89",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/tc.cu",
+      "accepted_development_sha256": "4fb6e7fccb432c192b262915abc8829c2e138fd4026ceae027ab55b3c7a9ba48",
+      "public_sha256": "4fb6e7fccb432c192b262915abc8829c2e138fd4026ceae027ab55b3c7a9ba48",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/tc.py",
+      "accepted_development_sha256": "848c34d3e6b20863fbd9d0aa7830eaf474ae816624609f17cbca6b8623f439c5",
+      "public_sha256": "848c34d3e6b20863fbd9d0aa7830eaf474ae816624609f17cbca6b8623f439c5",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/tc_hip.cu",
+      "accepted_development_sha256": "afb795541ab3ee8f5058156086065c87b86fc4a79a459c9c45e8cc983bb15db3",
+      "public_sha256": "afb795541ab3ee8f5058156086065c87b86fc4a79a459c9c45e8cc983bb15db3",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/tca.cu",
+      "accepted_development_sha256": "0c4a8d6782fe4f8e87ba22185c568705c7526c29735c790e3271b09ff61f4e0b",
+      "public_sha256": "0c4a8d6782fe4f8e87ba22185c568705c7526c29735c790e3271b09ff61f4e0b",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/tcf.cu",
+      "accepted_development_sha256": "b2616d67ba4bbdb9994d7509a59c475cb9b8584a68f791a0af0c76af7124c7db",
+      "public_sha256": "b2616d67ba4bbdb9994d7509a59c475cb9b8584a68f791a0af0c76af7124c7db",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/tokenizer.py",
+      "accepted_development_sha256": "bceaa6467fe727445da33e504c7cc565623df9496beed52b234b44a3e5967de3",
+      "public_sha256": "bceaa6467fe727445da33e504c7cc565623df9496beed52b234b44a3e5967de3",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/tp.py",
+      "accepted_development_sha256": "72f9891da0f04ff3fc82997bc212bcd6b8582c5da6a0c3434384abd25be938a6",
+      "public_sha256": "72f9891da0f04ff3fc82997bc212bcd6b8582c5da6a0c3434384abd25be938a6",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    },
+    {
+      "path": "kindi/verify.py",
+      "accepted_development_sha256": "cfcbeafbf58899d8ce3bac61a29b7d337317e5eea1b06dd034b445eb137a3281",
+      "public_sha256": "cfcbeafbf58899d8ce3bac61a29b7d337317e5eea1b06dd034b445eb137a3281",
+      "equal_after_line_ending_normalization": true,
+      "publication_only_difference": false
+    }
+  ],
+  "additional_public_runtime_file": "kindi/source_offer.py",
+  "publication_only_changes": "Version identity, retained public source offer and CLI legal banners. Build/profile/docs/manifests changed separately.",
+  "review": "32 saved pinned reference hashes rechecked; no matches at declared exact-token/line/identifier-normalized thresholds; no new static absolute import roots. Not a complete originality, patent or legal clearance.",
+  "public_clean_build_and_GPU_acceptance": "PASS; see VALIDATION-LIGHTNING.json for frozen tested identities and subsequent documentation-only refresh",
+  "CLA": "Maintainer accepted upstream CLA 1.1 in PR #16, including the earlier submission; third-party rights are retained."
+}

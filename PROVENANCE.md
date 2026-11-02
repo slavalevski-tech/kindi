@@ -1,5 +1,52 @@
 # Provenance, AI assistance and third-party licenses
 
+## V10 review — 2026-11-02
+
+The preparation starts from published V6 commit
+`a6604b7c99d8ef703b26faba7eef76fa19e1b0b2`. All 58 development runtime
+files were verified against the stable V10 SHA-256 manifest and read-only
+container source. Nine numerical/dispatch files are imported. Three additional
+paths retain public release identity, CLI notices and source-offer middleware;
+other upstream source is retained after accounting for line endings.
+
+The assembled CUDA source for `or_aos_lb4` + `load4` has SHA-256
+`f79d9a537bf8c8b6992ae974afa5a0105c4aa1b27a3774308fcef132f6fb4390`,
+matching the accepted development assembly. See
+`licenses/Lightning-V10-source-provenance.json` for the separate source identities.
+
+The lane4 head and Q2/attention staging derive from recorded native implementations
+in this AGPL fork. V6-to-V10 changed ranges were compared with 32 pinned external
+source files; all saved reference hashes were rechecked. Exact-token,
+meaningful-line and identifier-normalized comparisons found no matches at the
+declared thresholds. A synthetic known match was detected as a control.
+This is not proof of every AI training source or absence of transformed copying.
+
+Static import comparison found no new absolute import roots. The subsequent
+clean public-image installation recorded Python 3.6.9 and 25 package metadata
+records: the 24 previously inventoried component names, plus the distro copy of
+pip 9.0.1 alongside active pip 21.3.1. The recorded primary runtime versions match
+the table below. This is not an exhaustive Ubuntu/bundled dependency audit;
+transitive/OS resolutions can vary in future builds.
+
+NVIDIA's CUDA 10.2 Kepler tuning and best-practices guides were conceptual/API
+references. This update vendors no SDK headers, samples, CUDA binaries or external
+inference implementation. Existing third-party and model disclosures are retained.
+
+ChatGPT/Codex assisted development, testing, DevOps and this review. Previously
+disclosed model names include GPT-6 Astra and GPT-6.1 Sol; exact per-edit model
+records for every later V10 change are not available. The maintainer's existing
+CLA 1.1 acceptance covers later contributions under that version and explicitly
+names earlier PR #16. It does not transfer upstream or third-party ownership.
+
+No concrete source-license barrier to this source-only update or the maintainer's
+own contribution permissions was identified within this scope. This does not
+certify patents, copyright status in every jurisdiction, or binary/CUDA
+redistribution. OpenAI's output terms do not override third-party licenses.
+The V6 review below is retained as historical evidence; it is not a fresh V10
+image installation test or an independent human legal audit.
+
+## Historical V6 review
+
 Reviewed 1 November 2026 for the source-only Lightning V6 publication.
 Original Kindi 0.3.0: Amir Husain, upstream revision
 `6ac903e5cb00a6d55b6cb60f6ad7445cafe93051`.

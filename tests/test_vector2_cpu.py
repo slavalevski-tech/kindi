@@ -61,7 +61,7 @@ def main():
    def __init__(self):self.calls=[]
    def zeros(self,*args):return None
    def empty(self,shape,dtype):self.calls.append((shape,dtype));return shape
-  cp=CP();ops=types.SimpleNamespace(cp=cp,profile='optimized',configure_attention_bank4=lambda:({'requested_bytes':4},))
+  cp=CP();ops=types.SimpleNamespace(cp=cp,profile='optimized',attention_kv_load='scalar',configure_attention_bank4=lambda:({'requested_bytes':4},))
   with mock.patch.dict(os.environ,{'KINDI_LIGHTNING_ATTENTION_TILE_STRATEGY':STRATEGY,'KINDI_LIGHTNING_ATTENTION':'split'}):
    cache=kv.KVCacheOps(ops,'fp16','direct');assert cache.allocate(65536,2,128)==(65536,2,128)
    raises(lambda:cache.allocate(131072,2,128));assert len(cp.calls)==1 and cache.bank_requests==({'requested_bytes':4},)

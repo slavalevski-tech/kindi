@@ -1,5 +1,10 @@
 # Native MoE adapters and Lightning V6 contracts
 
+> Historical V6 technical reference retained for provenance. For the current V10
+> profile, installation and saved speed measurements, see [README.md](README.md),
+> [CHANGES-V6-TO-V10.md](CHANGES-V6-TO-V10.md) and
+> [BENCHMARKS-LIGHTNING.md](BENCHMARKS-LIGHTNING.md).
+
 The Lightning adapter separates packed CUDA operations from checkpoint semantics.
 `moe.py` and `lightning_batch.py` provide linear algebra, routing, dispatch,
 normalization and bounded-memory execution. `lightning.py` maps the pinned Nota

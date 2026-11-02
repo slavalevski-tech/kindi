@@ -1,10 +1,10 @@
-# Build and run Lightning Backend V6 on NVIDIA Quadro K6000
+# Build and run Lightning Backend V10 on NVIDIA Quadro K6000
 
 This source-only fork includes the complete backend; original Kindi need not be
-installed separately. V6 was accepted on K6000 in development on 2026-10-31. The
-public Docker recipe was clean-built and GPU-smoke-tested for V3 on 2026-10-30.
-This publication does not claim a new clean V6 Docker build or GPU installation
-run. See [VALIDATION.md](VALIDATION.md) for the separate records and
+installed separately. This public V10 recipe passed a clean build without cache
+and real K6000 numerical/API installation acceptance on 2026-11-02. See
+[VALIDATION.md](VALIDATION.md) and VALIDATION-LIGHTNING.json for the tested input,
+image, finite test scope and later documentation-only refresh, and
 [INSTALLATION.md](INSTALLATION.md) for the detailed installation and upgrade guide.
 
 ## Requirements
@@ -13,7 +13,7 @@ run. See [VALIDATION.md](VALIDATION.md) for the separate records and
 - Docker with BuildKit and Docker Compose v2 or later; permission to run Docker (prefix commands with sudo if required).
 - The existing pinned GGUF described in [MODEL.md](MODEL.md). This procedure neither includes nor downloads model weights.
 - At least 20 GB free disk for image layers and build cache. The initial build downloads a roughly 2.65 GB CUDA installer plus packages.
-- Several GB of free RAM for CUDA extraction through BuildKit tmpfs. The earlier clean-build host had 32 GB RAM; the running V6 service was accepted with a separate 4 GiB container limit and no swap.
+- Several GB of free RAM for CUDA extraction through BuildKit tmpfs. The earlier clean-build host had 32 GB RAM; the running V10 service was accepted with a separate 4 GiB container limit and no swap.
 
 Check `nvidia-smi`. The accepted stack is CUDA 10.2, CuPy 9.6.0 and Python 3.6.9
 on driver 470.256.02. The runtime lives inside Docker; preserve a working host
@@ -56,12 +56,12 @@ includes the complete source and checks [SOURCE-FILES.txt](SOURCE-FILES.txt).
 No private base image is required.
 
 The historical clean V3 build used `docker compose build --no-cache lightning`.
-V6 publication has not repeated that build on a fresh host. Image bytes are not
+V10 repeated the no-cache build and isolated installation on 2026-11-02. Image bytes are not
 reproducible: the OS tag, APT packages and some transitive dependencies are not
 digest locked. Save the image identity and `python3 -m pip freeze` when recording
 a new installation validation.
 
-Compose and the entrypoint select these twelve optimization variables:
+Compose and the entrypoint select these fourteen optimization variables:
 
 | Variable | Value |
 | --- | --- |
@@ -76,9 +76,11 @@ Compose and the entrypoint select these twelve optimization variables:
 | `KINDI_LIGHTNING_KV_READ` | `direct` |
 | `KINDI_LIGHTNING_ATTENTION_TILE_STRATEGY` | `gqa16_vec2_32_bank4` |
 | `KINDI_LIGHTNING_SSM_STRATEGY` | `auto` |
-| `KINDI_LIGHTNING_HEAD_LAYOUT` | `split` |
+| `KINDI_LIGHTNING_HEAD_LAYOUT` | `split_lane4` |
+| `KINDI_LIGHTNING_PREFILL_Q2` | `or_aos_lb4` |
+| `KINDI_LIGHTNING_ATTENTION_KV_LOAD` | `load4` |
 
-V6 attention requires FP16 KV, direct reads, optimized split attention and pinned
+V10 attention requires FP16 KV, direct reads, optimized split attention and pinned
 32-query-head/2-KV-head/128-dimension geometry. It rejects capacity above 65536.
 Changing just KV to FP32 or Q8_0 is not a valid version of this profile. Other
 strategies need compatible configuration and their own validation; see

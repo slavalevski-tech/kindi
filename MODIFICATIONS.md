@@ -1,3 +1,33 @@
+# V10 modified-version notice — 2026-11-02
+
+Lightning Backend V10 for NVIDIA Quadro K6000, maintained by slavalevski-tech.
+Original Kindi 0.3.0: Copyright (c) 2026 Amir Husain. AGPL-3.0-only; without warranty.
+The original license, commercial-license information, notices and Git ancestry
+are preserved. This is an independent fork, without implied endorsement or merge.
+
+Public base: `a6604b7c99d8ef703b26faba7eef76fa19e1b0b2` (published V6).
+Accepted development V10: 58 runtime files; assembled CUDA SHA-256
+`f79d9a537bf8c8b6992ae974afa5a0105c4aa1b27a3774308fcef132f6fb4390`.
+
+Nine numerical/dispatch files change or are added: lightning.cu, lightning.py,
+lightning_batch.py, kv.py, moe.py, lightning_prefill.cu,
+lightning_prefill_aos.cu, lightning_attention_load2.cu and lightning_attention_load4.cu.
+They introduce the exact lane4 head, Q2 OR/AoS prefill and FP16 vector-load attention.
+The public server/source middleware, CLI notices, version, explicit profile,
+documentation and manifest are maintained separately. See CHANGES-V6-TO-V10.md.
+
+ChatGPT/Codex assisted implementation, testing, DevOps and review. Earlier work
+disclosed GPT-6 Astra and GPT-6.1 Sol; no complete per-edit model record for V10
+is claimed. Known external references remain disclosed in NOTICE/PROVENANCE.md.
+Model weights, dependency binaries, SDK distribution, container images, private
+configuration and unrelated projects are excluded. Saved V10 single-observation
+speeds and the owner-overclocked board disclosure were added at the maintainer's
+request; see BENCHMARKS-LIGHTNING.md for the scope.
+
+The original V6/V3 modification records below are historical and retained verbatim.
+
+---
+
 # V6 modified-version notice — 2026-11-01
 
 Release scope: Lightning Backend V6 is the Kindi inference backend optimized and

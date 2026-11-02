@@ -7,8 +7,8 @@ import os
 import subprocess
 
 UPSTREAM_VERSION = "0.3.0"
-LIGHTNING_BACKEND_VERSION = "V6"
-VERSION = "0.3.0-lightning-v6"
+LIGHTNING_BACKEND_VERSION = "V10"
+VERSION = "0.3.0-lightning-v10"
 
 
 def _commit():

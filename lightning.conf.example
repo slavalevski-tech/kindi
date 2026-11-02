@@ -1,4 +1,4 @@
-# Lightning V6 public example, 2026-11-01; no credentials included.
+# Lightning V10 public example, 2026-11-02; no credentials included.
 [kindi]
 pack = /workspace/pack
 state_dir = /workspace/state

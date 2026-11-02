@@ -1,4 +1,4 @@
-"""Source distribution for the Lightning V6 publication, added 2026-10-30.
+"""Source distribution for Lightning; updated 2026-11-02, originally added 2026-10-30.
 
 SPDX-License-Identifier: AGPL-3.0-only
 """
@@ -42,7 +42,7 @@ def source_archive(root):
             total += size
             if size > 50 * 1024**2 or total > 100 * 1024**2:
                 raise ValueError('Unexpectedly large source distribution')
-            info = zipfile.ZipInfo(name, date_time=(2026, 10, 30, 0, 0, 0))
+            info = zipfile.ZipInfo(name, date_time=(2026, 11, 2, 0, 0, 0))
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = (0o100755 if name.endswith('.sh') else 0o100644) << 16
             archive.writestr(info, resolved.read_bytes())
@@ -85,17 +85,17 @@ class SourceOfferMiddleware:
         if path == '/source/archive':
             body = self.archive
             mime = b'application/zip'
-            headers += [(b'content-disposition', b'attachment; filename="kindi-lightning-v6-source.zip"')]
+            headers += [(b'content-disposition', b'attachment; filename="kindi-lightning-v10-source.zip"')]
         elif path == '/license':
             body = self.license
             mime = b'text/plain; charset=utf-8'
         else:
             body = ('<!doctype html><html lang="en"><meta charset="utf-8">'
-                    '<title>Lightning Backend V6 for Quadro K6000 — source and license</title><main>'
-                    '<h1>Lightning Backend V6 for NVIDIA Quadro K6000</h1>'
+                    '<title>Lightning Backend V10 for Quadro K6000 — source and license</title><main>'
+                    '<h1>Lightning Backend V10 for NVIDIA Quadro K6000</h1>'
                     '<p>Kindi 0.3.0 inference backend for NVIDIA Quadro K6000. '
                     'The external Nemotron Lightning model is obtained separately; no model weights are included.</p>'
-                    '<p>Modified fork maintained by slavalevski-tech, 2026-11-01. '
+                    '<p>Modified fork maintained by slavalevski-tech, 2026-11-02. '
                     'Original Kindi: Copyright (c) 2026 Amir Husain.</p>'
                     '<p>This software is supplied WITHOUT ANY WARRANTY. You may copy, '
                     'modify and redistribute it under AGPL-3.0-only.</p>'

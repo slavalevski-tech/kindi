@@ -1,15 +1,17 @@
-# Install Lightning Backend V6 on NVIDIA Quadro K6000
+# Install Lightning Backend V10 on NVIDIA Quadro K6000
 
 This guide installs the independent [slavalevski-tech/kindi fork](https://github.com/slavalevski-tech/kindi),
 based on Kindi 0.3.0 by Amir Husain, as a separate native inference server.
 Original Kindi need not be installed first. Clients connect to the backend's
 OpenAI-compatible API; the backend includes no chat interface.
 
-V6 follows the development profile accepted on 31 October 2026. The Docker recipe
-passed a V3 clean-install test on 30 October; no fresh V6 Docker/GPU test is claimed.
+V10 follows the accepted development profile. This public recipe passed a clean
+build without cache and isolated K6000 numerical/API installation on 2 November 2026.
 Read [VALIDATION.md](VALIDATION.md) for the exact
-scope, and [CHANGES-V3-TO-V6.md](CHANGES-V3-TO-V6.md) for the changes.
-Performance tables are intentionally withheld until comparable full measurements.
+scope, and [CHANGES-V6-TO-V10.md](CHANGES-V6-TO-V10.md) for the changes.
+Saved speeds and the owner-overclocked K6000 configuration are documented in
+[BENCHMARKS-LIGHTNING.md](BENCHMARKS-LIGHTNING.md). The installer does not apply
+an overclock; these measurements are not stock-clock performance guarantees.
 
 ## 1. Installation target and resources
 
@@ -28,7 +30,7 @@ K6000 is Kepler, outside NVIDIA's documented Pascal-and-newer WSL GPU support.
 | Service memory limit | 4 GiB RAM, no additional container swap |
 | Docker storage | At least 20 GB free for image layers/build cache |
 | Model | Existing 9,472,656,320-byte GGUF outside the checkout |
-| V6 GPU memory plan | About 10.26 GiB including reserves, for the declared profile |
+| V10 GPU memory plan | About 10.26 GiB including reserves, for the declared profile |
 | Image runtime | CUDA 10.2.89, CuPy 9.6.0, Python 3.6.9 |
 | Context | 65,536 total tokens, including input formatting and output |
 
@@ -62,22 +64,24 @@ references are in section 15.
 Check the selected GPU's current processes before verification or serving. A
 second Compose project does not provide a second GPU or additional VRAM. Build
 without loading a model while another service is running, but account for build
-RAM/disk use. Before loading V6, stop only workloads you own and intend to replace.
+RAM/disk use. Before loading V10, stop only workloads you own and intend to replace.
 For an existing V3 installation, follow the separate upgrade/rollback procedure
 in section 13 rather than changing its directory or configuration.
 
-## 3. Clone V6 into a new directory and record its revision
+## 3. Obtain V10 in a separate directory and record its revision
 
-First check whether a suitable clone already exists. For a new installation:
+First check whether a suitable clone already exists. For a separate V10
+installation, use the version tag so a later update of `main` does not change
+which backend you install:
 
 ```bash
-git clone https://github.com/slavalevski-tech/kindi.git kindi-lightning-v6
-cd kindi-lightning-v6
+git clone --branch lightning-k6000-v10 https://github.com/slavalevski-tech/kindi.git kindi-lightning-v10
+cd kindi-lightning-v10
 git rev-parse HEAD
 git show HEAD:kindi/__init__.py
 ```
 
-The public `main` branch should identify `0.3.0-lightning-v6`. Record the actual
+The public `main` branch should identify `0.3.0-lightning-v10`. Record the actual
 commit printed by Git with the installation log. The internal source identity in VALIDATION.md is provenance, not a public
 checkout target. Do not select the old V3 revision for this install.
 
@@ -144,7 +148,7 @@ openssl rand -hex 32
 ```
 
 Use the generated value without quotes on the `api_key` line below. Do not keep
-the literal placeholder. Retain these V6 settings:
+the literal placeholder. Retain these V10 settings:
 
 ```ini
 [kindi]
@@ -171,7 +175,7 @@ this config: the launcher clears inherited `KINDI_*` values except the
 `KINDI_LIGHTNING_*` optimization settings. `host = 0.0.0.0` listens inside the
 container; Compose publishes only on the host's loopback interface by default.
 
-The twelve V6 optimization settings are supplied by Compose/entrypoint; see
+The fourteen V10 optimization settings are supplied by Compose/entrypoint; see
 [BUILD.md](BUILD.md). Vector2 attention requires FP16/direct/optimized/split,
 Lightning geometry 32/2/128 and capacity ≤65536. Changing only KV to FP32/Q8_0
 while leaving vector2 enabled is invalid.
@@ -179,22 +183,23 @@ while leaving vector2 enabled is invalid.
 Check configuration before building:
 
 ```bash
-docker compose -p kindi-lightning-v6 config --quiet
+docker compose -p kindi-lightning-v10 config --quiet
 ```
 
 Use this project name consistently. Projects isolate containers, not VRAM.
-Parallel experiments also need distinct local image tags; V6 uses
-`kindi-lightning:v6-publication`.
+Parallel experiments also need distinct local image tags; V10 uses
+`kindi-lightning:v10-publication`.
 
 ## 6. Build the backend from public sources
 
 ```bash
-docker compose -p kindi-lightning-v6 build lightning
+docker compose -p kindi-lightning-v10 build lightning
 ```
 
 The first build downloads a roughly 2.65 GB CUDA installer and packages. BuildKit
 uses temporary RAM; weights are not copied. Reuse compatible layers. Historical
-V3 used `--no-cache`; no fresh V6 clean-build claim is made here.
+V10 was validated with `--no-cache` on 2026-11-02; ordinary later builds can reuse
+compatible layers. See VALIDATION-LIGHTNING.json for the tested identities.
 
 OS/APT/transitive packages are not completely digest locked; record the built
 image and package identities with your installation.
@@ -202,7 +207,7 @@ image and package identities with your installation.
 Check GPU visibility without loading a model:
 
 ```bash
-docker compose -p kindi-lightning-v6 run --rm --entrypoint nvidia-smi lightning -L
+docker compose -p kindi-lightning-v10 run --rm --entrypoint nvidia-smi lightning -L
 ```
 
 ## 7. Convert the manifest and run numerical verification
@@ -211,8 +216,8 @@ Ensure enough VRAM is free and no other model instance uses this K6000. Replace
 the filename if your verified file has a different name:
 
 ```bash
-docker compose -p kindi-lightning-v6 run --rm lightning convert /models/Ternary-Nemotron-3.5-Lightning-30B-A3B-GGUF.gguf --out /workspace/pack && \
-  docker compose -p kindi-lightning-v6 run --rm lightning verify
+docker compose -p kindi-lightning-v10 run --rm lightning convert /models/Ternary-Nemotron-3.5-Lightning-30B-A3B-GGUF.gguf --out /workspace/pack && \
+  docker compose -p kindi-lightning-v10 run --rm lightning verify
 ```
 
 Conversion writes `.local/pack/kindi_pack.json`, referring to `/models/...`
@@ -232,9 +237,9 @@ The output includes errors/hash/profile. Resolve failures before serving. This
 short check is not a 64K retrieval test. For later verification, stop this API:
 
 ```bash
-docker compose -p kindi-lightning-v6 stop lightning && \
-  docker compose -p kindi-lightning-v6 run --rm lightning verify && \
-  docker compose -p kindi-lightning-v6 up -d lightning
+docker compose -p kindi-lightning-v10 stop lightning && \
+  docker compose -p kindi-lightning-v10 run --rm lightning verify && \
+  docker compose -p kindi-lightning-v10 up -d lightning
 ```
 
 A failed verify leaves the service stopped. Never run a second model-loading
@@ -243,9 +248,9 @@ CLI process beside the service on one K6000.
 ## 8. Start the API and wait for readiness
 
 ```bash
-docker compose -p kindi-lightning-v6 up -d lightning
-docker compose -p kindi-lightning-v6 ps
-docker compose -p kindi-lightning-v6 logs --tail 50 lightning
+docker compose -p kindi-lightning-v10 up -d lightning
+docker compose -p kindi-lightning-v10 ps
+docker compose -p kindi-lightning-v10 logs --tail 50 lightning
 BASE_URL='http://127.0.0.1:18095'
 curl --fail --show-error "$BASE_URL/health"
 ```
@@ -367,9 +372,9 @@ source edits so the offer matches execution.
 Run only the lifecycle command you need:
 
 ```bash
-docker compose -p kindi-lightning-v6 stop lightning
-docker compose -p kindi-lightning-v6 up -d lightning
-docker compose -p kindi-lightning-v6 restart lightning
+docker compose -p kindi-lightning-v10 stop lightning
+docker compose -p kindi-lightning-v10 up -d lightning
+docker compose -p kindi-lightning-v10 restart lightning
 ```
 
 `stop` exits and releases service VRAM. `up -d` starts it; `restart` reloads
@@ -378,7 +383,7 @@ healthcheck failure alone does not restart a live failed process. For port/GPU/
 mount changes in `.env`, recreate this project:
 
 ```bash
-docker compose -p kindi-lightning-v6 up -d --force-recreate lightning
+docker compose -p kindi-lightning-v10 up -d --force-recreate lightning
 ```
 
 Source changes require a rebuild, verification and API checks. CPU checks in
@@ -388,14 +393,14 @@ Record the installation while it is running:
 
 ```bash
 git rev-parse HEAD
-LIGHTNING_CONTAINER_ID="$(docker compose -p kindi-lightning-v6 ps -q lightning)"
+LIGHTNING_CONTAINER_ID="$(docker compose -p kindi-lightning-v10 ps -q lightning)"
 docker inspect "$LIGHTNING_CONTAINER_ID" --format '{{.Image}}'
-docker compose -p kindi-lightning-v6 exec -T lightning python3 -m pip freeze > .local/python-packages.txt
-docker compose -p kindi-lightning-v6 logs --no-color lightning > .local/startup.log
+docker compose -p kindi-lightning-v10 exec -T lightning python3 -m pip freeze > .local/python-packages.txt
+docker compose -p kindi-lightning-v10 logs --no-color lightning > .local/startup.log
 ```
 
 Keep logs private if your own logging adds requests, host details or credentials.
-`docker compose -p kindi-lightning-v6 down` removes this project's containers and
+`docker compose -p kindi-lightning-v10 down` removes this project's containers and
 network while preserving external GGUF files and bind-mounted `.local/` files.
 Preserve shared models, tools and working images when cleaning up experiments.
 
@@ -414,28 +419,28 @@ docker image tag "$OLD_IMAGE_ID" kindi-lightning:v3-local-rollback
 ```
 
 Keep a private backup of V3 config/key and leave its clone unchanged. Prepare
-V6 separately using sections 3–6, the same read-only weights and another host
+V10 separately using sections 3–6, the same read-only weights and another host
 port, such as 18195. Record that port in the new `.env` and client URLs.
 
-When ready to test V6, stop only the original V3 service from its own directory:
+When ready to test V10, stop only the original V3 service from its own directory:
 
 ```bash
 docker compose -p "$OLD_PROJECT" stop lightning
 ```
 
-Change into the V6 directory. Run its manifest conversion, numerical verify and
+Change into the V10 directory. Run its manifest conversion, numerical verify and
 API/auth/source checks. Start only one model instance on the K6000. The old V3
-pack/state/config must not be mounted into the new service. V6 snapshots use a
+pack/state/config must not be mounted into the new service. V10 snapshots use a
 new genuine fingerprint; do not import old numerical-profile state by overriding
-that check. Fresh V6 conversion reuses weights without making a second copy.
+that check. Fresh V10 conversion reuses weights without making a second copy.
 
-After V6 passes, update the client connection. Keep the preserved V3 container
-stopped for rollback; the V6 build uses a separate image tag.
+After V10 passes, update the client connection. Keep the preserved V3 container
+stopped for rollback; the V10 build uses a separate image tag.
 
-If V6 verification or API checks fail, stop V6 from its directory:
+If V10 verification or API checks fail, stop V10 from its directory:
 
 ```bash
-docker compose -p kindi-lightning-v6 stop lightning
+docker compose -p kindi-lightning-v10 stop lightning
 ```
 
 Return to the original V3 directory and start the preserved container without
@@ -465,7 +470,7 @@ in an explicit local Compose override; do not substitute a new image silently.
   recreate the project after changing mappings.
 - HTTP 401: check the actual key/config mount. Use the exact Bearer value without
   literal placeholder or quotes.
-- Wrong profile: require context 65536, FP16 KV, exact head and the complete V6
+- Wrong profile: require context 65536, FP16 KV, exact head and the complete V10
   optimization settings. The vector2 guard rejects incompatible combinations.
 - HTTP 400: use supported text parameters and fit prompt/formatting/output within
   65536 tokens. A failed engine requires diagnosis and restart.
